@@ -6,8 +6,13 @@ The scripts to build the Container images are published in GitHub [docker-images
 In addition, we've provided the deployment scripts in this repository to assist you with deploying and managing Fusion Middleware instances in a Container environment.
 
 ### Oracle Fusion Middleware Products Container deployment scripts
- - [Oracle WebCenter Sites](/OracleWebCenterSites)
+ - [Oracle Access Management](/OracleAccessManagement)
+ - [Oracle Identity Governance](/OracleIdentityGovernance)
  - [Oracle SOA Suite](/OracleSOASuite)
+ - [Oracle Unified Directory](/OracleUnifiedDirectory)
+ - [Oracle Unified Directory Services Manager](/OracleUnifiedDirectorySM)
+ - [Oracle WebCenter Portal](/OracleWebCenterPortal)
+ - [Oracle WebCenter Sites](/OracleWebCenterSites)
 
 ## Support
 For support and certification information, please consult the documentation for each product.
