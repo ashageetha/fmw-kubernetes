@@ -8,6 +8,7 @@ export DOMAIN_HOME=${DOMAIN_HOME_DIR}
 if [ -z "${JAVA_HOME}" ]; then
   JAVA_HOME=/usr/java/latest
 fi  
+export WLST_PROPERTIES="-Dwlst.offline.log=debug_wlst.log -Dwlst.offline.log.priority=debug"
 wlst.sh -skipWLSModuleScanning \
         ${CREATE_DOMAIN_SCRIPT_DIR}/createSOADomain.py \
         -oh /u01/oracle \
@@ -38,3 +39,10 @@ wlst.sh -skipWLSModuleScanning \
         -soaManagedServerSSLPort ${SOA_MANAGED_SERVER_SSL_PORT} \
         -osbManagedServerSSLPort ${OSB_MANAGED_SERVER_SSL_PORT} \
         -persistentStore ${PERSISTENCE_STORE}
+        
+STATUS=$?
+if [ $STATUS != 0 ]; then
+  cp debug_wlst.log ${DOMAIN_LOGS_DIR}
+  echo "Review the errors in debug log file available at Domain log directory - ${DOMAIN_LOGS_DIR}/debug_wlst.log (Peristence Volume location) for errors"
+  return $STATUS
+fi        
