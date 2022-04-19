@@ -885,18 +885,6 @@ File location: /u01/oracle/soa/soa/connectors/DbAdapter.rar
     </item>
     
     <item>
-      <title>Patch and Upgrade</title>
-      <link>/fmw-kubernetes/oudsm/patch-and-upgrade/</link>
-      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
-      
-      <guid>/fmw-kubernetes/oudsm/patch-and-upgrade/</guid>
-      <description>Introduction In this section the Oracle Unified Directory Services Manager (OUDSM) deployment is updated with a new OUDSM container image.
-Note: If you are not using Oracle Container Registry or your own container registry, then you must first load the new container image on all nodes in your Kubernetes cluster.
-You can update the deployment with a new OUDSM container image using one of the following methods:
- Using a YAML file Using --set argument  Using a YAML file   Navigate to the $WORKDIR/kubernetes/helm directory:</description>
-    </item>
-    
-    <item>
       <title>Perform WLST operations</title>
       <link>/fmw-kubernetes/soa-domains/adminguide/performing-wlst-operations/</link>
       <pubDate>Fri, 22 Feb 2019 15:44:42 -0500</pubDate>
@@ -928,6 +916,18 @@ You can update the deployment with a new OID container image using one of the fo
       <description>Introduction In this section the Oracle Unified Directory (OUD) deployment is updated with a new OUD container image.
 Note: If you are not using Oracle Container Registry or your own container registry, then you must first load the new container image on all nodes in your Kubernetes cluster.
 You can update the deployment with a new OUD container image using one of the following methods:
+ Using a YAML file Using --set argument  Using a YAML file   Navigate to the $WORKDIR/kubernetes/helm directory:</description>
+    </item>
+    
+    <item>
+      <title>Patch and Upgrade</title>
+      <link>/fmw-kubernetes/oudsm/patch-and-upgrade/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>/fmw-kubernetes/oudsm/patch-and-upgrade/</guid>
+      <description>Introduction In this section the Oracle Unified Directory Services Manager (OUDSM) deployment is updated with a new OUDSM container image.
+Note: If you are not using Oracle Container Registry or your own container registry, then you must first load the new container image on all nodes in your Kubernetes cluster.
+You can update the deployment with a new OUDSM container image using one of the following methods:
  Using a YAML file Using --set argument  Using a YAML file   Navigate to the $WORKDIR/kubernetes/helm directory:</description>
     </item>
     

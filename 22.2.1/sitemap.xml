@@ -188,10 +188,6 @@
   </url>
   
   <url>
-    <loc>/fmw-kubernetes/22.2.1/oudsm/patch-and-upgrade/</loc>
-  </url>
-  
-  <url>
     <loc>/fmw-kubernetes/22.2.1/oam/post-install-config/</loc>
   </url>
   
@@ -209,6 +205,10 @@
   
   <url>
     <loc>/fmw-kubernetes/22.2.1/oud/patch-and-upgrade/</loc>
+  </url>
+  
+  <url>
+    <loc>/fmw-kubernetes/22.2.1/oudsm/patch-and-upgrade/</loc>
   </url>
   
   <url>

@@ -748,10 +748,6 @@
   </url>
   
   <url>
-    <loc>/fmw-kubernetes/oudsm/patch-and-upgrade/</loc>
-  </url>
-  
-  <url>
     <loc>/fmw-kubernetes/oam/post-install-config/</loc>
   </url>
   
@@ -794,6 +790,10 @@
   
   <url>
     <loc>/fmw-kubernetes/oud/patch-and-upgrade/</loc>
+  </url>
+  
+  <url>
+    <loc>/fmw-kubernetes/oudsm/patch-and-upgrade/</loc>
   </url>
   
   <url>
