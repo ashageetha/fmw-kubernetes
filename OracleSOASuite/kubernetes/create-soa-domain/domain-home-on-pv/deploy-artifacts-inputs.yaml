@@ -19,7 +19,7 @@ domainUID: soainfra
 # soa       : Deploys artifacts into a SOA Domain
 # osb       : Deploys artifcats into an OSB Domain (Oracle Service Bus)
 # soaosb    : Deploys artifacts into both SOA and OSB Domain
-domainType: soa
+domainType: soaosb
 
 # SOA Cluster name
 soaClusterName: soa_cluster
