@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="Hugo 0.72.0" />
-    <meta name="description" content="Instructions on how to update your OIG Kubernetes cluster with a new OIG docker image.">
+    <meta name="description" content="Instructions on how to update your OIG Kubernetes cluster with a new OIG container image.">
 
 
     <link rel="icon" href="/fmw-kubernetes/images/favicon.png" type="image/png">
@@ -12,18 +12,18 @@
     <title>a. Patch an image :: Oracle Fusion Middleware on Kubernetes</title>
 
     
-    <link href="/fmw-kubernetes/css/nucleus.css?1645770998" rel="stylesheet">
-    <link href="/fmw-kubernetes/css/fontawesome-all.min.css?1645770998" rel="stylesheet">
-    <link href="/fmw-kubernetes/css/hybrid.css?1645770998" rel="stylesheet">
-    <link href="/fmw-kubernetes/css/featherlight.min.css?1645770998" rel="stylesheet">
-    <link href="/fmw-kubernetes/css/perfect-scrollbar.min.css?1645770998" rel="stylesheet">
-    <link href="/fmw-kubernetes/css/auto-complete.css?1645770998" rel="stylesheet">
-    <link href="/fmw-kubernetes/css/atom-one-dark-reasonable.css?1645770998" rel="stylesheet">
-    <link href="/fmw-kubernetes/css/theme.css?1645770998" rel="stylesheet">
-    <link href="/fmw-kubernetes/css/hugo-theme.css?1645770998" rel="stylesheet">
+    <link href="/fmw-kubernetes/css/nucleus.css?1650364826" rel="stylesheet">
+    <link href="/fmw-kubernetes/css/fontawesome-all.min.css?1650364826" rel="stylesheet">
+    <link href="/fmw-kubernetes/css/hybrid.css?1650364826" rel="stylesheet">
+    <link href="/fmw-kubernetes/css/featherlight.min.css?1650364826" rel="stylesheet">
+    <link href="/fmw-kubernetes/css/perfect-scrollbar.min.css?1650364826" rel="stylesheet">
+    <link href="/fmw-kubernetes/css/auto-complete.css?1650364826" rel="stylesheet">
+    <link href="/fmw-kubernetes/css/atom-one-dark-reasonable.css?1650364826" rel="stylesheet">
+    <link href="/fmw-kubernetes/css/theme.css?1650364826" rel="stylesheet">
+    <link href="/fmw-kubernetes/css/hugo-theme.css?1650364826" rel="stylesheet">
     
 
-    <script src="/fmw-kubernetes/js/jquery-3.6.0.min.js?1645770998"></script>
+    <script src="/fmw-kubernetes/js/jquery-3.6.0.min.js?1650364826"></script>
 
     <style>
       :root #header + #content > #left > #rlblock_left{
@@ -57,14 +57,14 @@
     <span data-search-clear=""><i class="fas fa-times"></i></span>
 </div>
 
-<script type="text/javascript" src="/fmw-kubernetes/js/lunr.min.js?1645770998"></script>
-<script type="text/javascript" src="/fmw-kubernetes/js/auto-complete.js?1645770998"></script>
+<script type="text/javascript" src="/fmw-kubernetes/js/lunr.min.js?1650364826"></script>
+<script type="text/javascript" src="/fmw-kubernetes/js/auto-complete.js?1650364826"></script>
 <script type="text/javascript">
     
         var baseurl = "\/fmw-kubernetes\/";
     
 </script>
-<script type="text/javascript" src="/fmw-kubernetes/js/search.js?1645770998"></script>
+<script type="text/javascript" src="/fmw-kubernetes/js/search.js?1650364826"></script>
 
     
   </div>
@@ -526,191 +526,6 @@
         ">
       <a href="/fmw-kubernetes/oam/troubleshooting/">
           <b>12. </b>Troubleshooting
-          
-      </a>
-      
-              
-    </li>
-  
- 
-
-            
-          
-        
-        </ul>
-              
-    </li>
-  
- 
-
-          
-          
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oid/" title="Oracle Internet Directory" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oid/">
-          Oracle Internet Directory
-          
-      </a>
-      
-      
-        <ul>
-          
-          
-            
-          
-          
-          
-        
-          
-            
-            
-
-
- 
-  
-    
-      <li data-nav-id="/fmw-kubernetes/oid/release-notes/" title="Release Notes" class="dd-item ">
-        <a href="/fmw-kubernetes/oid/release-notes/">
-        <b>1. </b>Release Notes
-        
-        </a>
-    </li>
-     
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oid/prerequisites/" title="Prerequisites" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oid/prerequisites/">
-          <b>2. </b>Prerequisites
-          
-      </a>
-      
-              
-    </li>
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oid/prepare-your-environment/" title="Prepare Your Environment" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oid/prepare-your-environment/">
-          <b>3. </b>Prepare Your Environment
-          
-      </a>
-      
-              
-    </li>
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oid/create-oid-instances-helm/" title="Create Oracle Internet Directory Instances Using Helm" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oid/create-oid-instances-helm/">
-          <b>4. </b>Create Oracle Internet Directory Instances Using Helm
-          
-      </a>
-      
-      
-        <ul>
-          
-          
-            
-          
-          
-          
-        
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oid/create-oid-instances-helm/oid/" title="Helm Chart: oid" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oid/create-oid-instances-helm/oid/">
-          Helm Chart: oid
-          
-      </a>
-      
-              
-    </li>
-  
- 
-
-            
-          
-        
-        </ul>
-              
-    </li>
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oid/troubleshooting/" title="Troubleshooting" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oid/troubleshooting/">
-          <b>5. </b>Troubleshooting
           
       </a>
       
@@ -1344,6 +1159,620 @@
         ">
       <a href="/fmw-kubernetes/oig/troubleshooting/">
           <b>12. </b>Troubleshooting
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+        
+        </ul>
+              
+    </li>
+  
+ 
+
+          
+          
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oud/" title="Oracle Unified Directory" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oud/">
+          Oracle Unified Directory
+          
+      </a>
+      
+      
+        <ul>
+          
+          
+            
+          
+          
+          
+        
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/oud/release-notes/" title="Release Notes" class="dd-item ">
+        <a href="/fmw-kubernetes/oud/release-notes/">
+        <b>1. </b>Release Notes
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oud/prerequisites/" title="Prerequisites" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oud/prerequisites/">
+          <b>2. </b>Prerequisites
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oud/prepare-your-environment/" title="Prepare Your Environment" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oud/prepare-your-environment/">
+          <b>3. </b>Prepare Your Environment
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oud/create-oud-instances/" title="Create Oracle Unified Directory Instances" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oud/create-oud-instances/">
+          <b>4. </b>Create Oracle Unified Directory Instances
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oud/configure-ingress/" title="Configure an Ingress for OUD" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oud/configure-ingress/">
+          <b>5. </b>Configure an Ingress for OUD
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oud/manage-oud-containers/" title="Manage Oracle Unified Directory Containers" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oud/manage-oud-containers/">
+          <b>6. </b>Manage Oracle Unified Directory Containers
+          
+      </a>
+      
+      
+        <ul>
+          
+          
+          
+          
+        
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/oud/manage-oud-containers/scaling-up-down/" title="a) Scaling Up/Down OUD Pods " class="dd-item ">
+        <a href="/fmw-kubernetes/oud/manage-oud-containers/scaling-up-down/">
+        a) Scaling Up/Down OUD Pods 
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/oud/manage-oud-containers/logging-and-visualization/" title="b) Logging and Visualization for Helm Chart oud-ds-rs Deployment" class="dd-item ">
+        <a href="/fmw-kubernetes/oud/manage-oud-containers/logging-and-visualization/">
+        b) Logging and Visualization for Helm Chart oud-ds-rs Deployment
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/oud/manage-oud-containers/monitoring-oud-instance/" title="c) Monitoring an Oracle Unified Directory Instance" class="dd-item ">
+        <a href="/fmw-kubernetes/oud/manage-oud-containers/monitoring-oud-instance/">
+        c) Monitoring an Oracle Unified Directory Instance
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+        
+        </ul>
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oud/create-or-update-image/" title="Create or update an image" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oud/create-or-update-image/">
+          <b>7. </b>Create or update an image
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/oud/patch-and-upgrade/" title="Patch and Upgrade" class="dd-item ">
+        <a href="/fmw-kubernetes/oud/patch-and-upgrade/">
+        <b>8. </b>Patch and Upgrade
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oud/troubleshooting/" title="Troubleshooting" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oud/troubleshooting/">
+          <b>9. </b>Troubleshooting
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+        
+        </ul>
+              
+    </li>
+  
+ 
+
+          
+          
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oudsm/" title="Oracle Unified Directory Services Manager" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oudsm/">
+          Oracle Unified Directory Services Manager
+          
+      </a>
+      
+      
+        <ul>
+          
+          
+            
+          
+          
+          
+        
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/oudsm/release-notes/" title="Release Notes" class="dd-item ">
+        <a href="/fmw-kubernetes/oudsm/release-notes/">
+        <b>1. </b>Release Notes
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oudsm/prerequisites/" title="Prerequisites" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oudsm/prerequisites/">
+          <b>2. </b>Prerequisites
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oudsm/prepare-your-environment/" title="Prepare Your Environment" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oudsm/prepare-your-environment/">
+          <b>3. </b>Prepare Your Environment
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oudsm/create-oudsm-instances/" title="Create Oracle Unified Directory Services Manager Instances" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oudsm/create-oudsm-instances/">
+          <b>4. </b>Create Oracle Unified Directory Services Manager Instances
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oudsm/configure-ingress/" title="Configure an Ingress for OUDSM" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oudsm/configure-ingress/">
+          <b>5. </b>Configure an Ingress for OUDSM
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oudsm/manage-oudsm-containers/" title="Manage Oracle Unified Directory Services Manager Containers" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oudsm/manage-oudsm-containers/">
+          <b>6. </b>Manage Oracle Unified Directory Services Manager Containers
+          
+      </a>
+      
+      
+        <ul>
+          
+          
+          
+          
+        
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/oudsm/manage-oudsm-containers/scaling-up-down/" title="a) Scaling Up/Down OUDSM Pods " class="dd-item ">
+        <a href="/fmw-kubernetes/oudsm/manage-oudsm-containers/scaling-up-down/">
+        a) Scaling Up/Down OUDSM Pods 
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/oudsm/manage-oudsm-containers/logging-and-visualization/" title="b) Logging and Visualization for Helm Chart oudsm Deployment" class="dd-item ">
+        <a href="/fmw-kubernetes/oudsm/manage-oudsm-containers/logging-and-visualization/">
+        b) Logging and Visualization for Helm Chart oudsm Deployment
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/oudsm/manage-oudsm-containers/monitoring-oudsm-instance/" title="c) Monitoring an Oracle Unified Directory Services Manager Instance" class="dd-item ">
+        <a href="/fmw-kubernetes/oudsm/manage-oudsm-containers/monitoring-oudsm-instance/">
+        c) Monitoring an Oracle Unified Directory Services Manager Instance
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+        
+        </ul>
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oudsm/create-or-update-image/" title="Create or update an image" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oudsm/create-or-update-image/">
+          <b>7. </b>Create or update an image
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/oudsm/patch-and-upgrade/" title="Patch and Upgrade" class="dd-item ">
+        <a href="/fmw-kubernetes/oudsm/patch-and-upgrade/">
+        <b>7. </b>Patch and Upgrade
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oudsm/troubleshooting/" title="Troubleshooting" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oudsm/troubleshooting/">
+          <b>8. </b>Troubleshooting
           
       </a>
       
@@ -2129,323 +2558,6 @@
  
   
     
-    <li data-nav-id="/fmw-kubernetes/oud/" title="Oracle Unified Directory" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oud/">
-          Oracle Unified Directory
-          
-      </a>
-      
-      
-        <ul>
-          
-          
-            
-          
-          
-          
-        
-          
-            
-            
-
-
- 
-  
-    
-      <li data-nav-id="/fmw-kubernetes/oud/release-notes/" title="Release Notes" class="dd-item ">
-        <a href="/fmw-kubernetes/oud/release-notes/">
-        <b>1. </b>Release Notes
-        
-        </a>
-    </li>
-     
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oud/prerequisites/" title="Prerequisites" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oud/prerequisites/">
-          <b>2. </b>Prerequisites
-          
-      </a>
-      
-              
-    </li>
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oud/prepare-your-environment/" title="Prepare Your Environment" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oud/prepare-your-environment/">
-          <b>3. </b>Prepare Your Environment
-          
-      </a>
-      
-              
-    </li>
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oud/create-oud-instances/" title="Create Oracle Unified Directory Instances" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oud/create-oud-instances/">
-          <b>4. </b>Create Oracle Unified Directory Instances
-          
-      </a>
-      
-      
-        <ul>
-          
-          
-            
-          
-          
-          
-        
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oud/create-oud-instances/create-oud-instances-using-samples/" title="a. Create Oracle Unified Directory Instances Using Samples" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oud/create-oud-instances/create-oud-instances-using-samples/">
-          a. Create Oracle Unified Directory Instances Using Samples
-          
-      </a>
-      
-              
-    </li>
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oud/create-oud-instances/create-oud-instances-helm/" title="b. Create Oracle Unified Directory Instances Using Helm" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oud/create-oud-instances/create-oud-instances-helm/">
-          b. Create Oracle Unified Directory Instances Using Helm
-          
-      </a>
-      
-      
-        <ul>
-          
-          
-            
-          
-          
-          
-        
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oud/create-oud-instances/create-oud-instances-helm/oud-ds-rs/" title="Helm Chart: oud-ds-rs: For deployment of replicated Oracle Unified Directory (DS&#43;RS) instances" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oud/create-oud-instances/create-oud-instances-helm/oud-ds-rs/">
-          Helm Chart: oud-ds-rs: For deployment of replicated Oracle Unified Directory (DS&#43;RS) instances
-          
-      </a>
-      
-              
-    </li>
-  
- 
-
-            
-          
-        
-        </ul>
-              
-    </li>
-  
- 
-
-            
-          
-        
-        </ul>
-              
-    </li>
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oud/manage-oud-containers/" title="Manage Oracle Unified Directory Containers" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oud/manage-oud-containers/">
-          <b>5. </b>Manage Oracle Unified Directory Containers
-          
-      </a>
-      
-      
-        <ul>
-          
-          
-          
-          
-        
-          
-            
-            
-
-
- 
-  
-    
-      <li data-nav-id="/fmw-kubernetes/oud/manage-oud-containers/logging-and-visualization/" title="a) Logging and Visualization for Helm Chart oud-ds-rs Deployment" class="dd-item ">
-        <a href="/fmw-kubernetes/oud/manage-oud-containers/logging-and-visualization/">
-        a) Logging and Visualization for Helm Chart oud-ds-rs Deployment
-        
-        </a>
-    </li>
-     
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-      <li data-nav-id="/fmw-kubernetes/oud/manage-oud-containers/monitoring-oud-instance/" title="b) Monitoring an Oracle Unified Directory Instance" class="dd-item ">
-        <a href="/fmw-kubernetes/oud/manage-oud-containers/monitoring-oud-instance/">
-        b) Monitoring an Oracle Unified Directory Instance
-        
-        </a>
-    </li>
-     
-  
- 
-
-            
-          
-        
-        </ul>
-              
-    </li>
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oud/troubleshooting/" title="Troubleshooting" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oud/troubleshooting/">
-          <b>6. </b>Troubleshooting
-          
-      </a>
-      
-              
-    </li>
-  
- 
-
-            
-          
-        
-        </ul>
-              
-    </li>
-  
- 
-
-          
-          
-
-
- 
-  
-    
     <li data-nav-id="/fmw-kubernetes/wccontent-domains/" title="Oracle WebCenter Content" class="dd-item 
         
         
@@ -2802,6 +2914,25 @@
       <li data-nav-id="/fmw-kubernetes/wccontent-domains/adminguide/logging-fluentd-setup/" title="Publish logs to Elasticsearch Using Fluentd" class="dd-item ">
         <a href="/fmw-kubernetes/wccontent-domains/adminguide/logging-fluentd-setup/">
         Publish logs to Elasticsearch Using Fluentd
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/wccontent-domains/adminguide/configure-mount-share/" title="Configure an additional mount or shared space to a domain for Imaging and Capture" class="dd-item ">
+        <a href="/fmw-kubernetes/wccontent-domains/adminguide/configure-mount-share/">
+        Configure an additional mount or shared space to a domain for Imaging and Capture
         
         </a>
     </li>
@@ -3185,7 +3316,7 @@
         
         ">
       <a href="/fmw-kubernetes/wccontent-domains/appendix/">
-          <b>7. </b>Appendix
+          <b>8. </b>Appendix
           
       </a>
       
@@ -3256,323 +3387,6 @@
           
         
         </ul>
-              
-    </li>
-  
- 
-
-            
-          
-        
-        </ul>
-              
-    </li>
-  
- 
-
-          
-          
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oudsm/" title="Oracle Unified Directory Services Manager" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oudsm/">
-          Oracle Unified Directory Services Manager
-          
-      </a>
-      
-      
-        <ul>
-          
-          
-            
-          
-          
-          
-        
-          
-            
-            
-
-
- 
-  
-    
-      <li data-nav-id="/fmw-kubernetes/oudsm/release-notes/" title="Release Notes" class="dd-item ">
-        <a href="/fmw-kubernetes/oudsm/release-notes/">
-        <b>1. </b>Release Notes
-        
-        </a>
-    </li>
-     
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oudsm/prerequisites/" title="Prerequisites" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oudsm/prerequisites/">
-          <b>2. </b>Prerequisites
-          
-      </a>
-      
-              
-    </li>
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oudsm/prepare-your-environment/" title="Prepare Your Environment" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oudsm/prepare-your-environment/">
-          <b>3. </b>Prepare Your Environment
-          
-      </a>
-      
-              
-    </li>
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oudsm/create-oudsm-instances/" title="Create Oracle Unified Directory Instances" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oudsm/create-oudsm-instances/">
-          <b>4. </b>Create Oracle Unified Directory Instances
-          
-      </a>
-      
-      
-        <ul>
-          
-          
-            
-          
-          
-          
-        
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oudsm/create-oudsm-instances/create-oudsm-instances-using-samples/" title="a. Create Oracle Unified Directory Services Manager Instances Using Samples" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oudsm/create-oudsm-instances/create-oudsm-instances-using-samples/">
-          a. Create Oracle Unified Directory Services Manager Instances Using Samples
-          
-      </a>
-      
-              
-    </li>
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oudsm/create-oudsm-instances/create-oudsm-instances-helm/" title="b. Create Oracle Unified Directory Services Manager Instances Using Helm" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oudsm/create-oudsm-instances/create-oudsm-instances-helm/">
-          b. Create Oracle Unified Directory Services Manager Instances Using Helm
-          
-      </a>
-      
-      
-        <ul>
-          
-          
-            
-          
-          
-          
-        
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oudsm/create-oudsm-instances/create-oudsm-instances-helm/oudsm/" title="Helm Chart: oudsm: For deployment of Oracle Unified Directory Services Manager instances on Kubernetes" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oudsm/create-oudsm-instances/create-oudsm-instances-helm/oudsm/">
-          Helm Chart: oudsm: For deployment of Oracle Unified Directory Services Manager instances on Kubernetes
-          
-      </a>
-      
-              
-    </li>
-  
- 
-
-            
-          
-        
-        </ul>
-              
-    </li>
-  
- 
-
-            
-          
-        
-        </ul>
-              
-    </li>
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oudsm/manage-oudsm-containers/" title="Manage Oracle Unified Directory Services Manager Containers" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oudsm/manage-oudsm-containers/">
-          <b>5. </b>Manage Oracle Unified Directory Services Manager Containers
-          
-      </a>
-      
-      
-        <ul>
-          
-          
-          
-          
-        
-          
-            
-            
-
-
- 
-  
-    
-      <li data-nav-id="/fmw-kubernetes/oudsm/manage-oudsm-containers/logging-and-visualization/" title="a) Logging and Visualization for Helm Chart oudsm Deployment" class="dd-item ">
-        <a href="/fmw-kubernetes/oudsm/manage-oudsm-containers/logging-and-visualization/">
-        a) Logging and Visualization for Helm Chart oudsm Deployment
-        
-        </a>
-    </li>
-     
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-      <li data-nav-id="/fmw-kubernetes/oudsm/manage-oudsm-containers/monitoring-oudsm-instance/" title="b) Monitoring an Oracle Unified Directory Services Manager Instance" class="dd-item ">
-        <a href="/fmw-kubernetes/oudsm/manage-oudsm-containers/monitoring-oudsm-instance/">
-        b) Monitoring an Oracle Unified Directory Services Manager Instance
-        
-        </a>
-    </li>
-     
-  
- 
-
-            
-          
-        
-        </ul>
-              
-    </li>
-  
- 
-
-            
-          
-            
-            
-
-
- 
-  
-    
-    <li data-nav-id="/fmw-kubernetes/oudsm/troubleshooting/" title="Troubleshooting" class="dd-item 
-        
-        
-        
-        ">
-      <a href="/fmw-kubernetes/oudsm/troubleshooting/">
-          <b>6. </b>Troubleshooting
-          
-      </a>
-      
               
     </li>
   
@@ -4896,6 +4710,294 @@
  
 
           
+          
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oid/" title="Oracle Internet Directory" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oid/">
+          Oracle Internet Directory
+          
+      </a>
+      
+      
+        <ul>
+          
+          
+            
+          
+          
+          
+        
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/oid/release-notes/" title="Release Notes" class="dd-item ">
+        <a href="/fmw-kubernetes/oid/release-notes/">
+        <b>1. </b>Release Notes
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oid/prerequisites/" title="Prerequisites" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oid/prerequisites/">
+          <b>2. </b>Prerequisites
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oid/prepare-your-environment/" title="Prepare Your Environment" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oid/prepare-your-environment/">
+          <b>3. </b>Prepare Your Environment
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oid/create-oid-instances/" title="Create Oracle Internet Directory Instances" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oid/create-oid-instances/">
+          <b>4. </b>Create Oracle Internet Directory Instances
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oid/configure-ingress/" title="Configure an Ingress for OID" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oid/configure-ingress/">
+          <b>5. </b>Configure an Ingress for OID
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oid/manage-oid-containers/" title="Manage Oracle Internet Directory Containers" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oid/manage-oid-containers/">
+          <b>6. </b>Manage Oracle Internet Directory Containers
+          
+      </a>
+      
+      
+        <ul>
+          
+          
+          
+          
+        
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/oid/manage-oid-containers/scaling-up-down/" title="a) Scaling Up/Down OID Pods " class="dd-item ">
+        <a href="/fmw-kubernetes/oid/manage-oid-containers/scaling-up-down/">
+        a) Scaling Up/Down OID Pods 
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/oid/manage-oid-containers/monitoring-oid-instance/" title="c) Monitoring an Oracle Internet Directory Instance" class="dd-item ">
+        <a href="/fmw-kubernetes/oid/manage-oid-containers/monitoring-oid-instance/">
+        c) Monitoring an Oracle Internet Directory Instance
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+        
+        </ul>
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oid/create-or-update-image/" title="Create or update an image" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oid/create-or-update-image/">
+          <b>7. </b>Create or update an image
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+      <li data-nav-id="/fmw-kubernetes/oid/patch-and-upgrade/" title="Patch and Upgrade" class="dd-item ">
+        <a href="/fmw-kubernetes/oid/patch-and-upgrade/">
+        <b>8. </b>Patch and Upgrade
+        
+        </a>
+    </li>
+     
+  
+ 
+
+            
+          
+            
+            
+
+
+ 
+  
+    
+    <li data-nav-id="/fmw-kubernetes/oid/troubleshooting/" title="Troubleshooting" class="dd-item 
+        
+        
+        
+        ">
+      <a href="/fmw-kubernetes/oid/troubleshooting/">
+          <b>9. </b>Troubleshooting
+          
+      </a>
+      
+              
+    </li>
+  
+ 
+
+            
+          
+        
+        </ul>
+              
+    </li>
+  
+ 
+
+          
          
     </ul>
 
@@ -4973,6 +5075,7 @@
       <ul>
         <li><a href="#run-the-kubectl-edit-domain-command">Run the kubectl edit domain command</a></li>
         <li><a href="#run-the-kubectl-patch-command">Run the kubectl patch command</a></li>
+        <li><a href="#patch-the-database-schemas">Patch the database schemas</a></li>
       </ul>
     </li>
   </ul>
@@ -5000,13 +5103,13 @@
 
 
 
-<p>To update your OIG Kubernetes cluster with a new OIG Docker image, first install the new Docker image on all nodes in your Kubernetes cluster.</p>
-<p>Once the new image is installed choose one of the following options to update your OIG Kubernetes cluster to use the new image:</p>
+<p>Choose one of the following options to update your OIG kubernetes cluster to use the new image:</p>
 <ol>
 <li>Run the <code>kubectl edit domain</code> command</li>
 <li>Run the <code>kubectl patch domain</code> command</li>
 </ol>
 <p>In all of the above cases, the WebLogic Kubernetes Operator will restart the Administration Server pod first and then perform a rolling restart on the OIG Managed Servers.</p>
+<p><strong>Note</strong>: If you are not using Oracle Container Registry or your own container registry, then you must first load the new container image on all nodes in your Kubernetes cluster.</p>
 <h3 id="run-the-kubectl-edit-domain-command">Run the kubectl edit domain command</h3>
 <ol>
 <li>
@@ -5014,11 +5117,13 @@
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ kubectl edit domain &lt;domainname&gt; -n &lt;namespace&gt;
 </code></pre></div><p>For example:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ kubectl edit domain governancedomain -n oigns
-</code></pre></div></li>
-<li>
-<p>Update the <code>image</code> tag to point at the new image, for example:</p>
+</code></pre></div><p>If using Oracle Container Registry or your own container registry for your OIG container image, update the <code>image</code> <!-- raw HTML omitted --> to point at the new image, for example:</p>
 <pre><code>domainHomeInImage: false
-image: oracle/oig:12.2.1.4.0-new
+image: container-registry.oracle.com/middleware/oig_cpu:&lt;tag&gt;
+imagePullPolicy: IfNotPresent
+</code></pre><p>If you are not using a container registry and have loaded the image on each of the master and worker nodes, update the <code>image</code> <!-- raw HTML omitted --> to point at the new image:</p>
+<pre><code>domainHomeInImage: false
+image: oracle/oig:&lt;tag&gt;
 imagePullPolicy: IfNotPresent
 </code></pre></li>
 <li>
@@ -5030,10 +5135,96 @@ imagePullPolicy: IfNotPresent
 <li>
 <p>To update the domain with the <code>kubectl patch domain</code> command, run the following:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ kubectl patch domain &lt;domain&gt; -n &lt;namespace&gt; --type merge  -p <span style="color:#e6db74">&#39;{&#34;spec&#34;:{&#34;image&#34;:&#34;newimage:tag&#34;}}&#39;</span>
-</code></pre></div><p>For example:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ kubectl patch domain governancedomain -n oigns --type merge  -p <span style="color:#e6db74">&#39;{&#34;spec&#34;:{&#34;image&#34;:&#34;oracle/oig:12.2.1.4-new&#34;}}&#39;</span>
+</code></pre></div><p>For example, if using Oracle Container Registry or your own container registry for your OIG container image:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ kubectl patch domain governancedomain -n oigns --type merge  -p <span style="color:#e6db74">&#39;{&#34;spec&#34;:{&#34;image&#34;:&#34;container-registry.oracle.com/middleware/oig_cpu:&lt;tag&gt;&#34;}}&#39;</span>
+</code></pre></div><p>For example, if you are not using a container registry and have loaded the image on each of the master and worker nodes:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ kubectl patch domain governancedomain -n oigns --type merge  -p <span style="color:#e6db74">&#39;{&#34;spec&#34;:{&#34;image&#34;:&#34;oracle/oig:&lt;tag&gt;&#34;}}&#39;</span>
 </code></pre></div><p>The output will look similar to the following:</p>
 <pre><code>domain.weblogic.oracle/governancedomain patched
+</code></pre></li>
+</ol>
+<h3 id="patch-the-database-schemas">Patch the database schemas</h3>
+<p>Once the image has been updated you must patch the schemas in the database.</p>
+<ol>
+<li>
+<p>Check to see if the helper pod exists by running:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ kubectl get pods -n &lt;domain_namespace&gt; | grep helper
+</code></pre></div><p>For example:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ kubectl get pods -n oigns | grep helper
+</code></pre></div><p>The output should look similar to the following:</p>
+<pre><code>helper                                  1/1     Running     0          26h
+</code></pre><p>If the helper pod exists delete the pod with following command:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ kubectl delete pod helper -n &lt;namespace&gt;
+</code></pre></div><p>For example:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ kubectl delete pod helper -n oigns
+</code></pre></div></li>
+<li>
+<p>Create a new helper pod by following the instructions in <a href="../../prepare-your-environment/#rcu-schema-creation">Prepare you environment </a>. <strong>Note</strong>: The new helper pod should be started using the new image.</p>
+</li>
+<li>
+<p>Run the following command to start a bash shell in the helper pod:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ kubectl exec -it helper -n &lt;domain_namespace&gt; -- /bin/bash
+</code></pre></div><p>For example:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ kubectl exec -it helper -n oigns -- /bin/bash
+</code></pre></div><p>This will take you into a bash shell in the running helper pod:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#f92672">[</span>oracle@helper ~<span style="color:#f92672">]</span>$
+</code></pre></div></li>
+<li>
+<p>In the helper bash shell run the following commands to set the environment:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#f92672">[</span>oracle@helper oracle<span style="color:#f92672">]</span>$ export DB_HOST<span style="color:#f92672">=</span>&lt;db_host.domain&gt;
+<span style="color:#f92672">[</span>oracle@helper oracle<span style="color:#f92672">]</span>$ export DB_PORT<span style="color:#f92672">=</span>&lt;db_port&gt;
+<span style="color:#f92672">[</span>oracle@helper oracle<span style="color:#f92672">]</span>$ export DB_SERVICE<span style="color:#f92672">=</span>&lt;service_name&gt;
+<span style="color:#f92672">[</span>oracle@helper oracle<span style="color:#f92672">]</span>$ export RCUPREFIX<span style="color:#f92672">=</span>&lt;rcu_schema_prefix&gt;
+<span style="color:#f92672">[</span>oracle@helper oracle<span style="color:#f92672">]</span>$ export RCU_SCHEMA_PWD<span style="color:#f92672">=</span>&lt;rcu_schema_pwd&gt;
+<span style="color:#f92672">[</span>oracle@helper oracle<span style="color:#f92672">]</span>$ echo -e &lt;db_pwd&gt;<span style="color:#e6db74">&#34;\n&#34;</span>&lt;rcu_schema_pwd&gt; &gt; /tmp/pwd.txt
+<span style="color:#f92672">[</span>oracle@helper oracle<span style="color:#f92672">]</span>$ cat /tmp/pwd.txt
+</code></pre></div><p>where:</p>
+<p><code>&lt;db_host.domain&gt;</code> is the database server hostname</p>
+<p><code>&lt;db_port&gt;</code> is the database listener port</p>
+<p><code>&lt;service_name&gt;</code> is the database service name</p>
+<p><code>&lt;rcu_schema_prefix&gt;</code> is the RCU schema prefix you want to set</p>
+<p><code>&lt;rcu_schema_pwd&gt;</code> is the password you want to set for the <code>&lt;rcu_schema_prefix&gt;</code></p>
+<p><code>&lt;db_pwd&gt;</code> is the SYS password for the database</p>
+<p>For example:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#f92672">[</span>oracle@helper oracle<span style="color:#f92672">]</span>$ export DB_HOST<span style="color:#f92672">=</span>mydatabasehost.example.com
+<span style="color:#f92672">[</span>oracle@helper oracle<span style="color:#f92672">]</span>$ export DB_PORT<span style="color:#f92672">=</span><span style="color:#ae81ff">1521</span>
+<span style="color:#f92672">[</span>oracle@helper oracle<span style="color:#f92672">]</span>$ export DB_SERVICE<span style="color:#f92672">=</span>orcl.example.com
+<span style="color:#f92672">[</span>oracle@helper oracle<span style="color:#f92672">]</span>$ export RCUPREFIX<span style="color:#f92672">=</span>OIGK8S
+<span style="color:#f92672">[</span>oracle@helper oracle<span style="color:#f92672">]</span>$ export RCU_SCHEMA_PWD<span style="color:#f92672">=</span>&lt;password&gt;
+</code></pre></div></li>
+<li>
+<p>Run the following command to patch the schemas:</p>
+
+<div class="notices note" ><p>This command should be run if you are using an OIG image that contains OIG bundle patches. If using an OIG image without OIG bundle patches, then you can skip this step.</p>
+</div>
+
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#f92672">[</span>oracle@helper oracle<span style="color:#f92672">]</span>$ /u01/oracle/oracle_common/modules/thirdparty/org.apache.ant/1.10.5.0.0/apache-ant-1.10.5/bin/ant <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>-f /u01/oracle/idm/server/setup/deploy-files/automation.xml <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>run-patched-sql-files <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>-logger org.apache.tools.ant.NoBannerLogger <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>-logfile /u01/oracle/idm/server/bin/patch_oim_wls.log <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>-DoperationsDB.host<span style="color:#f92672">=</span>$DB_HOST <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>-DoperationsDB.port<span style="color:#f92672">=</span>$DB_PORT <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>-DoperationsDB.serviceName<span style="color:#f92672">=</span>$DB_SERVICE <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>-DoperationsDB.user<span style="color:#f92672">=</span><span style="color:#e6db74">${</span>RCUPREFIX<span style="color:#e6db74">}</span>_OIM <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>-DOIM.DBPassword<span style="color:#f92672">=</span>$RCU_SCHEMA_PWD <span style="color:#ae81ff">\
+</span><span style="color:#ae81ff"></span>-Dojdbc<span style="color:#f92672">=</span>/u01/oracle/oracle_common/modules/oracle.jdbc/ojdbc8.jar
+</code></pre></div><p>The output will look similar to the following:</p>
+<pre><code>Buildfile: /u01/oracle/idm/server/setup/deploy-files/automation.xml
+</code></pre></li>
+<li>
+<p>Verify the database was patched successfully by viewing the <code>patch_oim_wls.log</code>:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="color:#f92672">[</span>oracle@helper oracle<span style="color:#f92672">]</span>$ cat /u01/oracle/idm/server/bin/patch_oim_wls.log
+</code></pre></div><p>The output should look similar to below:</p>
+<pre><code> ...
+   [sql] Executing resource: /u01/oracle/idm/server/db/oim/oracle/StoredProcedures/OfflineDataPurge/oim_pkg_offline_datapurge_pkg_body.sql
+   [sql] Executing resource: /u01/oracle/idm/server/db/oim/oracle/Upgrade/oim12cps4/list/oim12cps4_dml_pty_insert_sysprop_RequestJustificationLocale.sql
+   [sql] Executing resource: /u01/oracle/idm/server/db/oim/oracle/Upgrade/oim12cps4/list/oim12cps4_dml_pty_insert_sysprop_reportee_chain_for_mgr.sql
+   [sql] 36 of 36 SQL statements executed successfully
+
+
+BUILD SUCCESSFUL
+Total time: 5 second
 </code></pre></li>
 </ol>
 
@@ -5399,6 +5590,7 @@ imagePullPolicy: IfNotPresent
             
                 
                     
+                    
                 
                 
 
@@ -5413,6 +5605,9 @@ imagePullPolicy: IfNotPresent
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -5466,12 +5661,13 @@ imagePullPolicy: IfNotPresent
                 
 
                     
-                    
-                        
                     
                     
 
                     
+            
+        
+                    
                         
             
             
@@ -5485,9 +5681,19 @@ imagePullPolicy: IfNotPresent
                     
 
                     
+                        
             
-        
+            
+                
+                    
+                
+                
+
+                    
                     
+                    
+
+                    
             
         
                     
@@ -5515,24 +5721,34 @@ imagePullPolicy: IfNotPresent
             
                 
                     
-                    
                 
                 
 
                     
-                    
-                        
                     
                     
 
                     
+            
+        
+                    
                         
             
             
                 
                     
-                        
+                
+                
+
+                    
+                    
+                    
+
+                    
                         
+            
+            
+                
                     
                 
                 
@@ -5557,9 +5773,25 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
             
         
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
                     
                         
             
@@ -5589,6 +5821,9 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
             
         
@@ -5637,7 +5872,20 @@ imagePullPolicy: IfNotPresent
                     
             
         
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
                     
+
+                    
             
         
                     
@@ -5669,6 +5917,9 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
                         
             
@@ -5682,6 +5933,9 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
             
         
@@ -5702,14 +5956,26 @@ imagePullPolicy: IfNotPresent
             
         
                     
+                        
             
-        
+            
+                
+                    
+                    
+                
+                
+
+                    
+                    
+                    
+
                     
                         
             
             
                 
                     
+                    
                 
                 
 
@@ -5717,11 +5983,17 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
                         
             
             
                 
+                    
+                        
+                        
                     
                 
                 
@@ -5730,6 +6002,9 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
             
         
@@ -5762,6 +6037,8 @@ imagePullPolicy: IfNotPresent
                 
 
                     
+                    
+                        
                     
                     
 
@@ -5859,8 +6136,18 @@ imagePullPolicy: IfNotPresent
                     
 
                     
+                        
             
-        
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
                     
             
         
@@ -5886,7 +6173,6 @@ imagePullPolicy: IfNotPresent
             
                 
                     
-                    
                 
                 
 
@@ -5894,13 +6180,18 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
+                    
+            
+        
                     
                         
             
             
                 
                     
-                    
                 
                 
 
@@ -5916,9 +6207,6 @@ imagePullPolicy: IfNotPresent
             
             
                 
-                    
-                        
-                        
                     
                 
                 
@@ -5927,9 +6215,6 @@ imagePullPolicy: IfNotPresent
                     
                     
 
-                    
-            
-        
                     
             
         
@@ -5992,12 +6277,13 @@ imagePullPolicy: IfNotPresent
                 
                 
 
-                    
                     
-                        
                     
                     
 
+                    
+            
+        
                     
                         
             
@@ -6043,9 +6329,6 @@ imagePullPolicy: IfNotPresent
                     
                     
 
-                    
-            
-        
                     
             
         
@@ -6059,8 +6342,6 @@ imagePullPolicy: IfNotPresent
                 
 
                     
-                    
-                        
                     
                     
 
@@ -6078,6 +6359,9 @@ imagePullPolicy: IfNotPresent
                     
 
                     
+            
+        
+                    
                         
             
             
@@ -6106,6 +6390,9 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
             
         
@@ -6126,9 +6413,6 @@ imagePullPolicy: IfNotPresent
             
         
                     
-            
-        
-                    
                         
             
             
@@ -6157,6 +6441,9 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
             
         
@@ -6171,11 +6458,10 @@ imagePullPolicy: IfNotPresent
 
                     
                     
+                        
                     
-
                     
-            
-        
+
                     
                         
             
@@ -6201,7 +6487,9 @@ imagePullPolicy: IfNotPresent
                 
                 
 
+                    
                     
+                        
                     
                     
 
@@ -6267,11 +6555,10 @@ imagePullPolicy: IfNotPresent
 
                     
                     
+                        
                     
-
                     
-            
-        
+
                     
                         
             
@@ -6285,12 +6572,6 @@ imagePullPolicy: IfNotPresent
                     
                     
 
-                    
-            
-        
-                    
-            
-        
                     
                         
             
@@ -6305,6 +6586,9 @@ imagePullPolicy: IfNotPresent
                     
 
                     
+            
+        
+                    
                         
             
             
@@ -6333,6 +6617,9 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
             
         
@@ -6353,9 +6640,6 @@ imagePullPolicy: IfNotPresent
             
         
                     
-            
-        
-                    
                         
             
             
@@ -6480,9 +6764,6 @@ imagePullPolicy: IfNotPresent
                     
                     
 
-                    
-            
-        
                     
             
         
@@ -6497,10 +6778,14 @@ imagePullPolicy: IfNotPresent
 
                     
                     
-                        
                     
-                    
 
+                    
+            
+        
+                    
+            
+        
                     
                         
             
@@ -6514,9 +6799,6 @@ imagePullPolicy: IfNotPresent
                     
                     
 
-                    
-            
-        
                     
                         
             
@@ -6559,12 +6841,16 @@ imagePullPolicy: IfNotPresent
                 
 
                     
-                    
-                        
                     
                     
 
                     
+            
+        
+                    
+            
+        
+                    
                         
             
             
@@ -6591,10 +6877,11 @@ imagePullPolicy: IfNotPresent
 
                     
                     
-                        
                     
-                    
 
+                    
+            
+        
                     
                         
             
@@ -6612,11 +6899,18 @@ imagePullPolicy: IfNotPresent
             
         
                     
+                        
             
-        
-                    
             
-        
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
                     
                         
             
@@ -6631,6 +6925,9 @@ imagePullPolicy: IfNotPresent
                     
 
                     
+            
+        
+                    
                         
             
             
@@ -6870,9 +7167,25 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
             
         
+                    
+                        
+            
+            
+                
+                    
+                
+                
+
+                    
+                    
+                    
+
                     
             
         
@@ -7283,7 +7596,22 @@ imagePullPolicy: IfNotPresent
                     
             
         
+                    
+                        
+            
+            
+                
                     
+                
+                
+
+                    
+                    
+                        
+                    
+                    
+
+                    
                         
             
             
@@ -7325,12 +7653,13 @@ imagePullPolicy: IfNotPresent
                 
 
                     
-                    
-                        
                     
                     
 
                     
+            
+        
+                    
                         
             
             
@@ -7343,6 +7672,9 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
             
         
@@ -7374,16 +7706,7 @@ imagePullPolicy: IfNotPresent
                     
                     
 
-                    
-            
-        
-                    
-            
-        
                     
-            
-        
-                    
                         
             
             
@@ -7396,6 +7719,9 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
                         
             
@@ -7429,9 +7755,6 @@ imagePullPolicy: IfNotPresent
             
         
                     
-            
-        
-                    
                         
             
             
@@ -7529,18 +7852,11 @@ imagePullPolicy: IfNotPresent
             
         
                     
-                        
             
-            
-                
-                    
-                
-                
-
-                    
-                    
+        
                     
-
+            
+        
                     
             
         
@@ -7557,9 +7873,6 @@ imagePullPolicy: IfNotPresent
                     
                     
 
-                    
-            
-        
                     
             
         
@@ -7573,11 +7886,12 @@ imagePullPolicy: IfNotPresent
                 
 
                     
-                    
-                        
                     
                     
 
+                    
+            
+        
                     
                         
             
@@ -7659,6 +7973,9 @@ imagePullPolicy: IfNotPresent
             
         
                     
+            
+        
+                    
                         
             
             
@@ -7733,19 +8050,10 @@ imagePullPolicy: IfNotPresent
                     
                     
 
-                    
-            
-        
                     
             
         
                     
-            
-        
-                    
-            
-        
-                    
                         
             
             
@@ -7762,6 +8070,9 @@ imagePullPolicy: IfNotPresent
             
         
                     
+            
+        
+                    
                         
             
             
@@ -7772,11 +8083,10 @@ imagePullPolicy: IfNotPresent
 
                     
                     
+                        
                     
-
                     
-            
-        
+
                     
                         
             
@@ -7819,6 +8129,9 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
             
         
@@ -7851,12 +8164,6 @@ imagePullPolicy: IfNotPresent
                     
                     
 
-                    
-            
-        
-                    
-            
-        
                     
             
         
@@ -7869,12 +8176,16 @@ imagePullPolicy: IfNotPresent
                 
                 
 
-                    
                     
-                        
                     
                     
 
+                    
+            
+        
+                    
+            
+        
                     
                         
             
@@ -7888,9 +8199,6 @@ imagePullPolicy: IfNotPresent
                     
                     
 
-                    
-            
-        
                     
                         
             
@@ -7901,12 +8209,13 @@ imagePullPolicy: IfNotPresent
                 
 
                     
-                    
-                        
                     
                     
 
                     
+            
+        
+                    
                         
             
             
@@ -7935,6 +8244,9 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
             
         
@@ -7955,9 +8267,6 @@ imagePullPolicy: IfNotPresent
             
         
                     
-            
-        
-                    
                         
             
             
@@ -7968,10 +8277,11 @@ imagePullPolicy: IfNotPresent
 
                     
                     
-                        
                     
-                    
 
+                    
+            
+        
                     
                         
             
@@ -8014,9 +8324,6 @@ imagePullPolicy: IfNotPresent
                     
                     
 
-                    
-            
-        
                     
             
         
@@ -8049,6 +8356,9 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
             
         
@@ -8065,9 +8375,6 @@ imagePullPolicy: IfNotPresent
                     
                     
 
-                    
-            
-        
                     
             
         
@@ -8129,6 +8436,9 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
             
         
@@ -8146,11 +8456,10 @@ imagePullPolicy: IfNotPresent
 
                     
                     
+                        
                     
-
                     
-            
-        
+
                     
                         
             
@@ -8180,6 +8489,9 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
                     
                         
             
@@ -8241,12 +8553,6 @@ imagePullPolicy: IfNotPresent
                     
                     
 
-                    
-            
-        
-                    
-            
-        
                     
                         
             
@@ -8276,6 +8582,12 @@ imagePullPolicy: IfNotPresent
                     
                     
 
+                    
+            
+        
+                    
+            
+        
                     
                         
             
@@ -8321,9 +8633,6 @@ imagePullPolicy: IfNotPresent
                     
                     
 
-                    
-            
-        
                     
             
         
@@ -8353,19 +8662,19 @@ imagePullPolicy: IfNotPresent
     <div style="left: -1000px; overflow: scroll; position: absolute; top: -1000px; border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;">
       <div style="border: none; box-sizing: content-box; height: 200px; margin: 0px; padding: 0px; width: 200px;"></div>
     </div>
-    <script src="/fmw-kubernetes/js/clipboard.min.js?1645770998"></script>
-    <script src="/fmw-kubernetes/js/perfect-scrollbar.min.js?1645770998"></script>
-    <script src="/fmw-kubernetes/js/perfect-scrollbar.jquery.min.js?1645770998"></script>
-    <script src="/fmw-kubernetes/js/jquery.sticky.js?1645770998"></script>
-    <script src="/fmw-kubernetes/js/featherlight.min.js?1645770998"></script>
-    <script src="/fmw-kubernetes/js/highlight.pack.js?1645770998"></script>
+    <script src="/fmw-kubernetes/js/clipboard.min.js?1650364827"></script>
+    <script src="/fmw-kubernetes/js/perfect-scrollbar.min.js?1650364827"></script>
+    <script src="/fmw-kubernetes/js/perfect-scrollbar.jquery.min.js?1650364827"></script>
+    <script src="/fmw-kubernetes/js/jquery.sticky.js?1650364827"></script>
+    <script src="/fmw-kubernetes/js/featherlight.min.js?1650364827"></script>
+    <script src="/fmw-kubernetes/js/highlight.pack.js?1650364827"></script>
     <script>hljs.initHighlightingOnLoad();</script>
-    <script src="/fmw-kubernetes/js/modernizr.custom-3.6.0.js?1645770998"></script>
-    <script src="/fmw-kubernetes/js/learn.js?1645770998"></script>
-    <script src="/fmw-kubernetes/js/hugo-learn.js?1645770998"></script>
+    <script src="/fmw-kubernetes/js/modernizr.custom-3.6.0.js?1650364827"></script>
+    <script src="/fmw-kubernetes/js/learn.js?1650364827"></script>
+    <script src="/fmw-kubernetes/js/hugo-learn.js?1650364827"></script>
 
-    <link href="/fmw-kubernetes/mermaid/mermaid.css?1645770998" rel="stylesheet" />
-    <script src="/fmw-kubernetes/mermaid/mermaid.js?1645770998"></script>
+    <link href="/fmw-kubernetes/mermaid/mermaid.css?1650364827" rel="stylesheet" />
+    <script src="/fmw-kubernetes/mermaid/mermaid.js?1650364827"></script>
     <script>
         mermaid.initialize({ startOnLoad: true });
     </script>
