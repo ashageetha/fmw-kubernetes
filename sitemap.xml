@@ -797,10 +797,6 @@
   </url>
   
   <url>
-    <loc>/fmw-kubernetes/oudsm/troubleshooting/</loc>
-  </url>
-  
-  <url>
     <loc>/fmw-kubernetes/oam/validate-sso-using-webgate/</loc>
   </url>
   
@@ -823,6 +819,10 @@
   
   <url>
     <loc>/fmw-kubernetes/oud/troubleshooting/</loc>
+  </url>
+  
+  <url>
+    <loc>/fmw-kubernetes/oudsm/troubleshooting/</loc>
   </url>
   
   <url>

@@ -212,10 +212,6 @@
   </url>
   
   <url>
-    <loc>/fmw-kubernetes/22.2.1/oudsm/troubleshooting/</loc>
-  </url>
-  
-  <url>
     <loc>/fmw-kubernetes/22.2.1/oam/validate-sso-using-webgate/</loc>
   </url>
   
@@ -233,6 +229,10 @@
   
   <url>
     <loc>/fmw-kubernetes/22.2.1/oud/troubleshooting/</loc>
+  </url>
+  
+  <url>
+    <loc>/fmw-kubernetes/22.2.1/oudsm/troubleshooting/</loc>
   </url>
   
   <url>
