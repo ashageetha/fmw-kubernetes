@@ -1,4 +1,4 @@
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # This is an example of functions and procedures to provision and Configure Oracle Advanced Authentication
@@ -20,7 +20,7 @@ oaa_mgmt()
 create_helper()
 {
    print_msg "Creating OAA Management Container"
-   ST=`date +%s`
+   ST=$(date +%s)
 
    kubectl get pod -n $OAANS oaa-mgmt > /dev/null 2> /dev/null
    if [ "$?" = "0" ]
@@ -56,7 +56,7 @@ create_helper()
        print_status $? $LOGDIR/create_mgmt.log
    fi
 
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Create OAA Management container" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -101,7 +101,7 @@ prepare_property_file()
 {
 
    print_msg "Prepare Property File"
-   ST=`date +%s`
+   ST=$(date +%s)
 
    kubectl cp  $OAANS/oaa-mgmt:/u01/oracle/installsettings/installOAA.properties $WORKDIR/installOAA.properties > $LOGDIR/create_property.log 2>&1
    kubectl cp  $OAANS/oaa-mgmt:/u01/oracle/installsettings/oaaoverride.yaml $WORKDIR/oaaoverride.yaml > $LOGDIR/create_property.log 2>&1
@@ -118,10 +118,11 @@ prepare_property_file()
    replace_value database.schemapassword $OAA_SCHEMA_PWD $propfile
    replace_value database.datafile /tmp/dbfiles/oaa.dat $propfile
    replace_value database.validaitonfile /tmp/dbfiles/validate.sql $propfile
-   replace_value database.name $OAA_DB_SID $propfile
+   #replace_value database.name $OAA_DB_SID $propfile
+   replace_value database.name "" $propfile
+   replace_value database.createschema true $propfile
    replace_value common.deployment.name $OAA_DEPLOYMENT $propfile
    replace_value common.kube.namespace $OAANS $propfile
-   replace_value common.deployment.namespace.coherenceoperator $OAACONS $propfile
    replace_value common.deployment.keystorepassphrase $OAA_KEYSTORE_PWD $propfile
    replace_value common.deployment.truststorepassphrase $OAA_KEYSTORE_PWD $propfile
    replace_value oauth.domainname $OAA_DOMAIN $propfile
@@ -207,6 +208,7 @@ prepare_property_file()
        replace_value install.oaa-kba.service.type NodePort $propfile
        replace_value install.risk.service.type NodePort $propfile
        replace_value install.risk.riskcc.service.type NodePort $propfile
+       replace_value install.customfactor.service.type NodePort $propfile
    else
        replace_value install.service.type ClusterIP $propfile
        replace_value install.oaa-admin-ui.service.type ClusterIP $propfile
@@ -221,6 +223,7 @@ prepare_property_file()
        replace_value install.oaa-kba.service.type ClusterIP $propfile
        replace_value install.risk.service.type ClusterIP $propfile
        replace_value install.risk.riskcc.service.type ClusterIP $propfile
+       replace_value install.customfactor.service.type ClusterIP $propfile
        awk  -v "var=install.ingress.hosts\\\\[0\\\\].host=${OAM_LOGIN_LBR_HOST}\ninstall.ingress.hosts\\\\[1\\\\].host=${OAM_ADMIN_LBR_HOST}" '/install.ingress.hosts/ && !x {print var; x=1} 1' $propfile > ${propfile}1
        mv ${propfile}1 $propfile
    fi
@@ -240,85 +243,45 @@ prepare_property_file()
    sed -i "/oaa-policy:/{n;s/replicaCount.*/replicaCount: $OAA_POLICY_REPLICAS/}"  $override
    sed -i "/push:/{n;s/replicaCount.*/replicaCount: $OAA_PUSH_REPLICAS/}"  $override
 
+
    copy_to_oaa $propfile /u01/oracle/scripts/settings/installOAA.properties $OAANS oaa-mgmt  >> $LOGDIR/create_property.log 2>&1
    copy_to_oaa $override /u01/oracle/scripts/settings/oaaoverride.yaml $OAANS oaa-mgmt  >> $LOGDIR/create_property.log 2>&1
    print_status $COPYCODE $LOGDIR/create_property.log
 
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Create property_file" $ST $ET >> $LOGDIR/timings.log
 }
 
-# Copy to DB
-#
-copy_db_files()
-{
-   ST=`date +%s`
-   print_msg "Copy files to Database Server"
-
-   mkdir $WORKDIR/dbfiles > $LOGDIR/copy_db_files.log 2>&1
-   cp $TEMPLATE_DIR/create_schemas.sh $WORKDIR/dbfiles
-
-   printf "\n\t\t\tCreate shell script - "
-   update_variable "<OAA_DB_HOME>" $OAA_DB_HOME $WORKDIR/dbfiles/create_schemas.sh  >> $LOGDIR/copy_db_files.log 2>&1
-   update_variable "<OAA_DB_SID>" $OAA_DB_SID $WORKDIR/dbfiles/create_schemas.sh  >> $LOGDIR/copy_db_files.log 2>&1
-   print_status $? copy_db_files.log
-
-   printf "\t\t\tCreating db tar archive - "
-   copy_from_oaa /u01/oracle/scripts/createOAASchema.sh $WORKDIR/dbfiles/createOAASchema.sh $OAANS oaa-mgmt >> $LOGDIR/copy_db_files.log 2>&1
-   copy_from_oaa /u01/oracle/scripts/importDBData.sh $WORKDIR/dbfiles/importDBData.sh $OAANS oaa-mgmt >> $LOGDIR/copy_db_files.log 2>&1
-   copy_from_oaa /u01/oracle/scripts/validateOAASchema.sh $WORKDIR/dbfiles/validateOAASchema.sh $OAANS oaa-mgmt >> $LOGDIR/copy_db_files.log 2>&1
-   copy_from_oaa /u01/oracle/scripts/oaa.dat $WORKDIR/dbfiles/oaa.dat $OAANS oaa-mgmt >> $LOGDIR/copy_db_files.log 2>&1
-   copy_from_oaa /u01/oracle/scripts/validate.sql $WORKDIR/dbfiles/validate.sql $OAANS oaa-mgmt >> $LOGDIR/copy_db_files.log 2>&1
-   cp $WORKDIR/installOAA.properties $WORKDIR/dbfiles >> $LOGDIR/copy_db_files.log 2>&1
-   chmod +x $WORKDIR/dbfiles/*.sh
-   cd $WORKDIR
-   tar cvfz $WORKDIR/dbfiles.tar.gz dbfiles >> $LOGDIR/copy_db_files.log 2>&1
-   print_status $? $LOGDIR/copy_db_files.log
-
-
-   printf "\t\t\tCopy files to Database host $OAA_DB_HOST - "
-   scp $WORKDIR/dbfiles.tar.gz ${OAA_DB_USER}@$OAA_DB_HOST:/tmp  >> $LOGDIR/copy_db_files.log 2>&1
-   print_status $? $LOGDIR/copy_db_files.log
-
-   printf "\t\t\tExtract Files on DB server - "
-   ssh  ${OAA_DB_USER}@$OAA_DB_HOST -C "mkdir /tmp/dbfiles; cd /tmp ; tar xvfz /tmp/dbfiles.tar.gz ; chmod +x dbfiles/*.sh " >> $LOGDIR/copy_db_files.log 2>&1
-
-   print_status $? $LOGDIR/copy_db_files.log
-   ET=`date +%s`
-   print_time STEP "Copy Files to DB" $ST $ET >> $LOGDIR/timings.log
-}
-
-# Create Database Schemas
-#
-create_schemas()
-{
-   ST=`date +%s`
-   print_msg "Create Database Schemas"
-
-
-   ssh  ${OAA_DB_USER}@$OAA_DB_HOST -C "cd /tmp/dbfiles ; ./create_schemas.sh" >> $LOGDIR/create_schemas.log 2>&1
-   print_status $? $LOGDIR/create_schemas.log
-   ET=`date +%s`
-   print_time STEP "Create Schemas" $ST $ET >> $LOGDIR/timings.log
-}
 
 # Create RBAC for OCI
 #
 create_rbac()
 {
    print_msg "Create OAA Service Account"
-   ST=`date +%s`
+   ST=$(date +%s)
 
    filename=oaa_svc_acct_ingress.yaml
 
    cp $TEMPLATE_DIR/$filename $WORKDIR
    update_variable "<OAANS>" $OAANS $WORKDIR/$filename
-   update_variable "<OAACONS>" $OAACONS $WORKDIR/$filename
 
    kubectl apply -f $WORKDIR/$filename > $LOGDIR/create_rbac.log 2>&1
    print_status $? $LOGDIR/create_rbac.log
 
-   TOKENNAME=`kubectl -n $OAANS get serviceaccount/oaa-service-account -o jsonpath='{.secrets[0].name}'`
+   KVER=`kubectl version --short 2>/dev/null | grep Server | cut -f2 -d: |sed 's/v//;s/ //g' `
+   KVER=${KVER:0:4}
+   if [ $KVER > "1.23" ]
+   then
+     printf "\t\t\tCreating Service Account Secret - "
+     cp $TEMPLATE_DIR/create_svc_secret.yaml $WORKDIR
+     update_variable "<OAANS>" $OAANS $WORKDIR/create_svc_secret.yaml
+     kubectl apply -f $WORKDIR/create_svc_secret.yaml >> $LOGDIR/create_rbac.log 2>&1
+     print_status $? $LOGDIR/create_rbac.log
+     TOKENNAME=oaa-service-account
+   else
+     echo "old ver"
+     TOKENNAME=`kubectl -n $OAANS get serviceaccount/oaa-service-account -o jsonpath='{.secrets[0].name}'`
+   fi
 
    TOKEN=`kubectl -n $OAANS get secret $TOKENNAME -o jsonpath='{.data.token}'| base64 --decode`
 
@@ -352,7 +315,7 @@ create_rbac()
    copy_to_oaa $WORKDIR/oaa_config /u01/oracle/scripts/creds/k8sconfig $OAANS oaa-mgmt  >> $LOGDIR/create_rbac.log 2>&1
    print_status $COPYCODE $LOGDIR/create_rbac.log
 
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Create oaa-mgmt kubeconfig" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -361,11 +324,11 @@ create_rbac()
 validate_oaamgmt()
 {
    print_msg "Checking kubectl"
-   ST=`date +%s`
+   ST=$(date +%s)
    oaa_mgmt "kubectl get pods -n $OAANS" > $LOGDIR/check_kubectl.log 2>&1
    grep -q "NAME" $LOGDIR/check_kubectl.log
    print_status $?  $LOGDIR/check_kubectl.log
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Validate kubectl" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -374,10 +337,10 @@ validate_oaamgmt()
 create_helm_file()
 {
    print_msg "Creating Helm Configuration File"
-   ST=`date +%s`
+   ST=$(date +%s)
    copy_to_oaa $TEMPLATE_DIR/helmconfig /u01/oracle/scripts/creds $OAANS oaa-mgmt  >> $LOGDIR/create_helm_file.log 2>&1
    print_status $COPYCODE  $LOGDIR/create_helm_file.log
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Create Helm Config File" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -386,7 +349,7 @@ create_helm_file()
 create_server_certs()
 {
    print_msg "Creating Server Certificates"
-   ST=`date +%s`
+   ST=$(date +%s)
 
    mkdir $WORKDIR/ssl > /dev/null 2>&1
    printf "\n\t\t\tCreate Self Signed Root Key - "
@@ -454,7 +417,7 @@ create_server_certs()
    printf "\t\t\tCopy File to oaa-mgmt - "
    copy_to_oaa $TEMPLATE_DIR/helmconfig /u01/oracle/scripts/creds $OAANS oaa-mgmt  >> $LOGDIR/server_cert.log 2>&1
    print_status $COPYCODE $LOGDIR/server_cert.log 2>&1
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Create Server Certs" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -467,7 +430,7 @@ create_ldap_entries()
 
      DIR_TYPE=$1
 
-     ST=`date +%s`
+     ST=$(date +%s)
      print_msg "Create Users/Groups in LDAP"
 
      cp $TEMPLATE_DIR/users.ldif $WORKDIR
@@ -484,32 +447,32 @@ create_ldap_entries()
 
      if [ "$DIR_TYPE" = "oud" ]
      then
-         cp $TEMPLATE_DIR/oud_add_users.sh $WORKDIR
-         shfile=$WORKDIR/oud_add_users.sh
-         update_variable "<OUD_POD_PREFIX>" $OUD_POD_PREFIX $shfile
-         update_variable "<OUDNS>" $OUDNS $shfile
-         update_variable "<LDAP_ADMIN_USER>" $LDAP_ADMIN_USER $shfile
-         update_variable "<LDAP_ADMIN_PWD>" $LDAP_ADMIN_PWD $shfile
+       cp $TEMPLATE_DIR/oud_add_users.sh $WORKDIR
+       shfile=$WORKDIR/oud_add_users.sh
+       update_variable "<LDAP_HOST>" ${LDAP_EXTERNAL_HOST:=$OUD_POD_PREFIX-oud-ds-rs-lbr-ldap.$OUDNS.svc.cluster.local} $shfile
+       update_variable "<LDAP_PORT>" ${LDAP_EXTERNAL_PORT:=1389} $shfile
+       update_variable "<LDAP_ADMIN_USER>" $LDAP_ADMIN_USER $shfile
+       update_variable "<LDAP_ADMIN_PWD>" $LDAP_ADMIN_PWD $shfile
 
-         kubectl cp $filename $OUDNS/$OUD_POD_PREFIX-oud-ds-rs-0:/u01/oracle/config-input > $LOGDIR/create_ldap.log 2>&1
-         kubectl cp $shfile $OUDNS/$OUD_POD_PREFIX-oud-ds-rs-0:/u01/oracle/config-input >> $LOGDIR/create_ldap.log 2>&1
-         kubectl exec -ti -n $OUDNS $OUD_POD_PREFIX-oud-ds-rs-0 -c oud-ds-rs -- /u01/oracle/config-input/oud_add_users.sh >> $LOGDIR/create_ldap.log 2>&1
+       kubectl cp $filename $OUDNS/$OUD_POD_PREFIX-oud-ds-rs-0:/u01/oracle/config-input > $LOGDIR/create_ldap.log 2>&1
+       kubectl cp $shfile $OUDNS/$OUD_POD_PREFIX-oud-ds-rs-0:/u01/oracle/config-input >> $LOGDIR/create_ldap.log 2>&1
+       kubectl exec -ti -n $OUDNS $OUD_POD_PREFIX-oud-ds-rs-0 -c oud-ds-rs -- /u01/oracle/config-input/oud_add_users.sh >> $LOGDIR/create_ldap.log 2>&1
      fi
 
      if [ $? -gt 0 ]
      then
-           grep -q exists $LOGDIR/create_ldap.log
-           if [ $? = 0 ]
-           then 
-              printf "Already exists\n"
-           else
-             print_status 1 $LOGDIR/create_ldap.log
-           fi
+       grep -q exists $LOGDIR/create_ldap.log
+       if [ $? = 0 ]
+       then 
+         printf "Already exists\n"
+       else
+         print_status 1 $LOGDIR/create_ldap.log
+       fi
      else
        printf " Success\n"
      fi
 
-     ET=`date +%s`
+     ET=$(date +%s)
      print_time STEP "Create Users and Groups" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -520,7 +483,7 @@ enable_oauth()
      ADMINURL=$1
      USER=$2
 
-     ST=`date +%s`
+     ST=$(date +%s)
      print_msg "Enabling OAM OAuth"
 
      cp $TEMPLATE_DIR/enable_oauth.xml  $WORKDIR/enable_oauth.xml
@@ -528,7 +491,7 @@ enable_oauth()
      curl -s -x '' -X PUT $ADMINURL/iam/admin/config/api/v1/config -ikL -H 'Content-Type: application/xml' --user $USER -H 'cache-control: no-cache' -d @$WORKDIR/enable_oauth.xml > $LOGDIR/enable_oauth.log 2>&1
      
      print_status $? $LOGDIR/enable_oauth.log
-     ET=`date +%s`
+     ET=$(date +%s)
      print_time STEP "Enable OAM OAuth " $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -537,7 +500,7 @@ enable_oauth()
 validate_oauth()
 {
 
-     ST=`date +%s`
+     ST=$(date +%s)
      print_msg "Validating OAM OAuth"
 
      cp $TEMPLATE_DIR/enable_oauth.xml  $WORKDIR/enable_oauth.xml
@@ -551,7 +514,7 @@ validate_oauth()
      grep -q "Method Not Allowed" $LOGDIR/validate_oauth.log
 
      print_status $? $LOGDIR/validate_oauth.log
-     ET=`date +%s`
+     ET=$(date +%s)
      print_time STEP "Validate OAuth" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -560,40 +523,40 @@ add_existing_users()
 
      DIR_TYPE=$1
 
-     ST=`date +%s`
+     ST=$(date +%s)
      print_msg "Add existing users to $OAA_USER_GROUP"
 
      if [ "$DIR_TYPE" = "oud" ]
      then
-         cp $TEMPLATE_DIR/oud_add_existing_users.sh $WORKDIR
-         shfile=$WORKDIR/oud_add_existing_users.sh
-         update_variable "<OUD_POD_PREFIX>" $OUD_POD_PREFIX $shfile
-         update_variable "<OUDNS>" $OUDNS $shfile
-         update_variable "<LDAP_ADMIN_USER>" $LDAP_ADMIN_USER $shfile
-         update_variable "<LDAP_ADMIN_PWD>" $LDAP_ADMIN_PWD $shfile
-         update_variable "<LDAP_USER_SEARCHBASE>" $LDAP_USER_SEARCHBASE $shfile
-         update_variable "<LDAP_GROUP_SEARCHBASE>" $LDAP_GROUP_SEARCHBASE $shfile
-         update_variable "<OAA_ADMIN_USER>" $OAA_ADMIN_USER $shfile
-         update_variable "<OAA_USER_GROUP>" $OAA_USER_GROUP $shfile
+       cp $TEMPLATE_DIR/oud_add_existing_users.sh $WORKDIR
+       shfile=$WORKDIR/oud_add_existing_users.sh
+       update_variable "<LDAP_HOST>" ${LDAP_EXTERNAL_HOST:=$OUD_POD_PREFIX-oud-ds-rs-lbr-ldap.$OUDNS.svc.cluster.local} $shfile
+       update_variable "<LDAP_PORT>" ${LDAP_EXTERNAL_PORT:=1389} $shfile
+       update_variable "<LDAP_ADMIN_USER>" $LDAP_ADMIN_USER $shfile
+       update_variable "<LDAP_ADMIN_PWD>" $LDAP_ADMIN_PWD $shfile
+       update_variable "<LDAP_USER_SEARCHBASE>" $LDAP_USER_SEARCHBASE $shfile
+       update_variable "<LDAP_GROUP_SEARCHBASE>" $LDAP_GROUP_SEARCHBASE $shfile
+       update_variable "<OAA_ADMIN_USER>" $OAA_ADMIN_USER $shfile
+       update_variable "<OAA_USER_GROUP>" $OAA_USER_GROUP $shfile
 
-         kubectl cp $shfile $OUDNS/$OUD_POD_PREFIX-oud-ds-rs-0:/u01/oracle/config-input  > $LOGDIR/add_existing_users.log 2>&1
-         kubectl exec -ti -n $OUDNS $OUD_POD_PREFIX-oud-ds-rs-0 -c oud-ds-rs -- /u01/oracle/config-input/oud_add_existing_users.sh >> $LOGDIR/add_existing_users.log 2>&1
+       kubectl cp $shfile $OUDNS/$OUD_POD_PREFIX-oud-ds-rs-0:/u01/oracle/config-input  > $LOGDIR/add_existing_users.log 2>&1
+       kubectl exec -ti -n $OUDNS $OUD_POD_PREFIX-oud-ds-rs-0 -c oud-ds-rs -- /u01/oracle/config-input/oud_add_existing_users.sh >> $LOGDIR/add_existing_users.log 2>&1
      fi
 
      if [ $? -gt 0 ]
      then
-           grep -q duplicate $LOGDIR/add_existing_users.log
-           if [ $? = 0 ]
-           then 
-              printf "Already exists\n"
-           else
-             print_status 1 $LOGDIR/add_existing_users.log
-           fi
+       grep -q duplicate $LOGDIR/add_existing_users.log
+       if [ $? = 0 ]
+       then 
+         printf "Already exists\n"
+       else
+         print_status 1 $LOGDIR/add_existing_users.log
+       fi
      else
         echo " Success"
      fi
 
-     ET=`date +%s`
+     ET=$(date +%s)
      print_time STEP "Add Existing Users to OAA Group" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -601,7 +564,7 @@ add_existing_users()
 add_ohs_rewrite_rules()
 {
 
-     ST=`date +%s`
+     ST=$(date +%s)
      print_msg "Add OHS Rewrite Rules"
 
      cp $TEMPLATE_DIR/ohs_header.conf $WORKDIR
@@ -614,21 +577,26 @@ add_ohs_rewrite_rules()
      if [ $? -gt 0 ]
      then
          sed -i "/RewriteEngine/r $WORKDIR/ohs_header.conf" $OHSHOST1FILES/login_vh.conf
-         if [ ! "$OHS_HOST2" = "" ]
-         then
-            sed -i '/RewriteEngine/r $WORKDIR/ohs_header.conf' $OHSHOST2FILES/login_vh.conf
-         fi
+     fi
+
+     if [ ! "$OHS_HOST2" = "" ]
+     then
+       grep -q X-OAUTH-IDENTITY-DOMAIN-NAME $OHSHOST2FILES/login_vh.conf
+       if [ $? -gt 0 ]
+       then
+         sed -i "/RewriteEngine/r $WORKDIR/ohs_header.conf" $OHSHOST2FILES/login_vh.conf
+       fi
      fi
 
      print_status $? 
-     ET=`date +%s`
+     ET=$(date +%s)
      print_time STEP "Add OHS Rewrite Rules" $ST $ET >> $LOGDIR/timings.log
 }
 
 create_ohs_entries()
 {
 
-     ST=`date +%s`
+     ST=$(date +%s)
      print_msg "Add OHS Directives"
 
      cp $TEMPLATE_DIR/ohs_login.conf $WORKDIR
@@ -715,7 +683,7 @@ create_ohs_entries()
      update_variable "<OAA_K8>" $OAA_K8  $WORKDIR/create_ohs_wallet.sh
 
      print_status $? 
-     ET=`date +%s`
+     ET=$(date +%s)
      print_time STEP "Add OHS Directives" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -732,66 +700,42 @@ create_ohs_wallet()
      print_status $? $LOGDIR/create_wallet.log
 
      printf "\t\t\tChanging Permissions - "
-     ssh $OHS_HOST1 "chmod +x /tmp/create_ohs_wallet.sh" >> $LOGDIR/copy_ohs.log 2>&1
+     $SSH $OHS_HOST1 "chmod +x /tmp/create_ohs_wallet.sh" >> $LOGDIR/copy_ohs.log 2>&1
      print_status $? $LOGDIR/copy_ohs.log
 
      printf "\t\t\tCreating Wallet on OHS Server $OHS_HOST1 - "
-     ssh $OHS_HOST1 "/tmp/create_ohs_wallet.sh" >> $LOGDIR/copy_ohs.log 2>&1
+     $SSH $OHS_HOST1 "/tmp/create_ohs_wallet.sh" >> $LOGDIR/copy_ohs.log 2>&1
      print_status $? $LOGDIR/copy_ohs.log
 
      printf "\t\t\tRestarting Oracle HTTP Server $OHS_HOST1 - "
-     ssh $OHS_HOST1 "$OHS_DOMAIN/bin/restartComponent.sh $OHS1_NAME" >> $LOGDIR/copy_ohs.log 2>&1
+     $SSH $OHS_HOST1 "$OHS_DOMAIN/bin/restartComponent.sh $OHS1_NAME" >> $LOGDIR/copy_ohs.log 2>&1
      print_status $? $LOGDIR/copy_ohs.log
 
      if [ ! "$OHS_HOST2" = "" ]
      then
         printf "\n\t\t\tCopy Script to OHS Server $OHS_HOST2 - "
 
-        scp $WORKDIR/create_ohs_wallet.sh  $OHS_HOST2:/tmp >> $LOGDIR/create_wallet.log 2>&1
+        $SCP $WORKDIR/create_ohs_wallet.sh  $OHS_HOST2:/tmp >> $LOGDIR/create_wallet.log 2>&1
         print_status $? $LOGDIR/create_wallet.log
 
         printf "\t\t\tChanging Permissions - "
-        ssh $OHS_HOST2 "chmod +x /tmp/create_ohs_wallet.sh" >> $LOGDIR/copy_ohs.log 2>&1
+        $SSH $OHS_HOST2 "chmod +x /tmp/create_ohs_wallet.sh" >> $LOGDIR/copy_ohs.log 2>&1
         print_status $? $LOGDIR/copy_ohs.log
 
         printf "\t\t\tCreating Wallet on OHS Server $OHS_HOST2 - "
-        ssh $OHS_HOST2 "/tmp/create_ohs_wallet.sh" >> $LOGDIR/copy_ohs.log 2>&1
+        $SSH $OHS_HOST2 "/tmp/create_ohs_wallet.sh" >> $LOGDIR/copy_ohs.log 2>&1
         print_status $? $LOGDIR/copy_ohs.log
 
         printf "\t\t\tRestarting Oracle HTTP Server $OHS_HOST2 - "
-        ssh $OHS_HOST2 "$OHS_DOMAIN/bin/restartComponent.sh $OHS2_NAME" >> $LOGDIR/copy_ohs.log 2>&1
+        $SSH $OHS_HOST2 "$OHS_DOMAIN/bin/restartComponent.sh $OHS2_NAME" >> $LOGDIR/copy_ohs.log 2>&1
         print_status $? $LOGDIR/copy_ohs.log
      fi
 
 
-     ET=`date +%s`
+     ET=$(date +%s)
      print_time STEP "Create OHS Wallet" $ST $ET >> $LOGDIR/timings.log
 }
 
-# Deploy Coherence
-#
-deploy_coherence()
-{
-   print_msg "Deploy Coherence"
-   ST=`date +%s`
-
-   printf "\n\t\t\tAdd Coherence Repository - "
-   helm repo add coherence https://oracle.github.io/coherence-operator/charts  > $LOGDIR/deploy_coherence.log 2>&1
-   print_status $? $LOGDIR/deploy_coherence.log
-
-   printf "\t\t\tUpdate Helm Repository - " 
-   helm repo update >> $LOGDIR/deploy_coherence.log 2>&1
-   print_status $? $LOGDIR/deploy_coherence.log
-
-
-   printf "\t\t\tInstall Coherence - "
-   helm install -n $OAACONS  coherence-operator coherence/coherence-operator >> $LOGDIR/deploy_coherence.log 2>&1
-   print_status $? $LOGDIR/deploy_coherence.log
-   
-   
-   ET=`date +%s`
-   print_time STEP "Deploy Coherence" $ST $ET >> $LOGDIR/timings.log
-}
 
 # Deploy OAA
 #
@@ -799,21 +743,76 @@ deploy_oaa()
 {
 
    print_msg "Deploy OAA"
-   ST=`date +%s`
+   ST=$(date +%s)
 
    printf "\n\t\t\tUpdate Property File - "
    propfile=$WORKDIR/installOAA.properties
-   replace_value database.createschema false $propfile
 
    copy_to_oaa $propfile /u01/oracle/scripts/settings/installOAA.properties $OAANS oaa-mgmt  >> $LOGDIR/create_property.log 2>&1
    print_status $COPYCODE $LOGDIR/create_property.log
 
    printf "\t\t\tDeploy OAA - "
    oaa_mgmt "/u01/oracle/OAA.sh -f installOAA.properties" > $LOGDIR/deploy_oaa.log 2>&1
-   print_status $? $LOGDIR/deploy_oaa.log 2>&1
+   if [ $? -gt 0 ]
+   then
+      grep -q "OAUTH validation failed" $LOGDIR/deploy_oaa.log
+      if [ $? = 0 ]
 
-   ET=`date +%s`
+      then
+         echo "Executing command /u01/oracle/scripts/validateOauthForOAA.sh -f /u01/oracle/scripts/settings/installOAA.properties -d true to get more information." >> $LOGDIR/deploy_oaa.log
+         oaa_mgmt "/u01/oracle/scripts/validateOauthForOAA.sh -f /u01/oracle/scripts/settings/installOAA.properties -d true" >> $LOGDIR/deploy_oaa.log 2>&1
+      fi
+      echo "Failed - See Logfile $LOGDIR/deploy_oaa.log"
+      exit 1
+   else
+      echo "Success."
+   fi
+
+   ET=$(date +%s)
    print_time STEP "Deploy OAA" $ST $ET >> $LOGDIR/timings.log
+}
+
+# Deploy OAA Snapshot
+#
+import_snapshot()
+{
+
+   print_msg "Import OAA Snapshot"
+   ST=$(date +%s)
+
+   printf "\n\t\t\tUpdate Property File - "
+   propfile=$WORKDIR/installOAA.properties
+   echo "common.deployment.import.snapshot=true" >> $propfile
+   echo "common.deployment.import.snapshot.file=/u01/oracle/scripts/oarm-12.2.1.4.1-base-snapshot.zip" >> $propfile
+   copy_to_oaa $propfile /u01/oracle/scripts/settings/installOAA.properties $OAANS oaa-mgmt  > $LOGDIR/import_snapshot.log 2>&1
+   print_status $COPYCODE $LOGDIR/import_snapshot.log
+
+   printf "\t\t\tImport Snapshot - " 
+   oaa_mgmt "/u01/oracle/scripts/importPolicySnapshot.sh -f /u01/oracle/scripts/settings/installOAA.properties " >> $LOGDIR/import_snapshot.log 2>&1
+
+   if [ $? -gt 0 ]
+   then
+        grep -q "504 Gateway Time-out" $LOGDIR/import_snapshot.log
+        if [ $? = 0 ]
+        then
+          printf "\n\t\t\tTrying again because of Timeout - "
+          oaa_mgmt "/u01/oracle/scripts/importPolicySnapshot.sh -f /u01/oracle/scripts/settings/installOAA.properties " >> $LOGDIR/import_snapshot.log 2>&1
+          print_status $? $LOGDIR/import_snapshot.log 2>&1
+        else
+          echo "Failed - Check Logfile $LOGDIR/import_snapshot.log"
+          exit 1
+        fi
+   else
+        echo "Success"
+   fi
+       
+   printf "\t\t\tResetting Snapshot Flag in property file - "
+   replace_value common.deployment.import.snapshot false $propfile
+   copy_to_oaa $propfile /u01/oracle/scripts/settings/installOAA.properties $OAANS oaa-mgmt  >> $LOGDIR/import_snapshot.log 2>&1
+   print_status $COPYCODE $LOGDIR/import_snapshot.log
+
+   ET=$(date +%s)
+   print_time STEP "Import OAA Snapshot" $ST $ET >> $LOGDIR/timings.log
 }
 
 # Update OAuth redirect URLS
@@ -822,7 +821,7 @@ update_urls()
 {
 
    print_msg "Update OAM URLs"
-   ST=`date +%s`
+   ST=$(date +%s)
 
    ADMINURL=http://$K8_WORKER_HOST1:$OAM_ADMIN_K8 
 
@@ -847,14 +846,14 @@ update_urls()
    grep -q "Sucessfully modified entity"  $LOGDIR/update_urls.log
    print_status $? $LOGDIR/update_urls.log 2>&1
 
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Update OAM URLs" $ST $ET >> $LOGDIR/timings.log
 }
 # Delete Schemas
 #
 delete_schemas()
 {
-   ST=`date +%s`
+   ST=$(date +%s)
    print_msg "Deleting OAA Schemas" 
 
    cp $TEMPLATE_DIR/delete_schemas.sh $WORKDIR
@@ -870,8 +869,8 @@ delete_schemas()
    
    oaa_mgmt /tmp/delete_schemas.sh 
 
-   ET=`date +%s`
-   print_time STEP "Deploy OAA" $ST $ET 
+   ET=$(date +%s)
+   print_time STEP "Drop OAA Schemas" $ST $ET 
 }
 
 # Register OAA as an OAM Partner Application
@@ -879,7 +878,7 @@ delete_schemas()
 register_tap()
 {
 
-   ST=`date +%s`
+   ST=$(date +%s)
    print_msg "Creating OAM TAP Partner"
    cp $TEMPLATE_DIR/create_tap_partner.py $WORKDIR
 
@@ -903,7 +902,7 @@ register_tap()
    copy_from_k8 $PV_MOUNT/workdir/OAMOAAKeyStore.jks $WORKDIR/OAMOAAKeyStore.jks $OAMNS $OAM_DOMAIN_NAME
    print_status $RETCODE $LOGDIR/create_tap_partner.log
 
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Create OAM TAP Partner" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -912,7 +911,7 @@ register_tap()
 configure_ums()
 {
 
-   ST=`date +%s`
+   ST=$(date +%s)
    print_msg "Integrating OAA with Email/SMS Client"
 
 
@@ -942,7 +941,7 @@ configure_ums()
    print_status $? $LOGDIR/configure_ums.log
 
 
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Create OAA Agent" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -951,7 +950,7 @@ configure_ums()
 create_oaa_agent()
 {
 
-   ST=`date +%s`
+   ST=$(date +%s)
    print_msg "Creating OAA Agent"
 
    OAA_KEY=`xxd -plain -u $WORKDIR/OAMOAAKeyStore.jks | tr -d '\n'`
@@ -975,6 +974,7 @@ create_oaa_agent()
    echo "$POST_CURL_COMMAND $REST_API $CONTENT_TYPE $PAYLOAD" > $LOGDIR/create_oaa_agent.log 2>&1
    eval "$POST_CURL_COMMAND $REST_API $CONTENT_TYPE $PAYLOAD" >> $LOGDIR/create_oaa_agent.log 2>&1
 
+   sleep 10
    echo "$GET_CURL_COMMAND | jq -r .agents[].agentgid" >> $LOGDIR/create_oaa_agent.log 2>&1
    XX="$GET_CURL_COMMAND | jq -r .agents[].agentgid"
    AGENTID=`eval $XX`
@@ -998,7 +998,7 @@ create_oaa_agent()
    grep -q clientId $LOGDIR/update_agent.log
    print_status $? $LOGDIR/update_agent.log
 
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Create OAA Agent" $ST $ET >> $LOGDIR/timings.log
 }
    
@@ -1007,7 +1007,7 @@ create_oaa_agent()
 copy_plugin()
 {
 
-   ST=`date +%s`
+   ST=$(date +%s)
    print_msg "Obtaining OAA Plugin"
 
    copy_from_oaa /u01/oracle/libs/OAAAuthnPlugin.jar  $WORKDIR/OAAAuthnPlugin.jar $OAANS oaa-mgmt > $LOGDIR/copy_plugin.log 2>&1
@@ -1021,7 +1021,7 @@ copy_plugin()
    copy_to_k8 $WORKDIR/OAAAuthnPlugin.jar workdir $OAMNS $OAM_DOMAIN_NAME >> $LOGDIR/copy_plugin.log 2>&1
    print_status $? $LOGDIR/copy_plugin.log
 
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Obtain OAA Plugin" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -1030,7 +1030,7 @@ copy_plugin()
 install_plugin()
 {
 
-   ST=`date +%s`
+   ST=$(date +%s)
    print_msg "Installing OAA Plugin"
 
    ENCUSER=`encode_pwd $LDAP_OAMADMIN_USER:$LDAP_USER_PWD`
@@ -1038,7 +1038,7 @@ install_plugin()
    GET_OAMCONFIG="curl -x '' -X GET http://$OAM_ADMIN_LBR_HOST:$OAM_ADMIN_LBR_PORT/iam/admin/config/api/v1/config -ikL -H 'Content-Type: application/xml'  $USER_HEADER -H 'cache-control: no-cache'"
 
    echo  $GET_OAMCONFIG > $LOGDIR/install_plugin.log
-   eval $GET_OAMCONFIG > $WORKDIR/oam-config.xml
+   eval $GET_OAMCONFIG > $WORKDIR/oam-config.xml 2>$LOGDIR/oam_config.log
 
    grep -q "Configuration Configuration.xsd" $WORKDIR/oam-config.xml
    if [ $? = 1 ]
@@ -1068,7 +1068,7 @@ install_plugin()
        print_status $WLSRETCODE $LOGDIR/install_plugin.log
 
    fi
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Install OAA Plugin" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -1077,7 +1077,7 @@ install_plugin()
 create_auth_module()
 {
 
-   ST=`date +%s`
+   ST=$(date +%s)
    print_msg "Creating OAM Authentication Module"
 
    cp $TEMPLATE_DIR/create_auth_module.xml $WORKDIR
@@ -1126,7 +1126,7 @@ create_auth_module()
 
     print_status $? $LOGDIR/create_auth_module.log
 
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Create Authentication Module in OAM" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -1136,7 +1136,7 @@ create_auth_module()
 create_auth_scheme()
 {
 
-   ST=`date +%s`
+   ST=$(date +%s)
    print_msg "Creating OAM Authentication Scheme"
 
    ADMIN_URL=http://$OAM_ADMIN_LBR_HOST:$OAM_ADMIN_LBR_PORT/oam/services/rest/11.1.2.0.0/ssa/policyadmin/authnscheme
@@ -1165,7 +1165,7 @@ create_auth_scheme()
         echo "Success"
     fi
 
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Create Authentication Scheme in OAM" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -1194,7 +1194,7 @@ delete_auth_scheme()
 create_auth_policy()
 {
 
-   ST=`date +%s`
+   ST=$(date +%s)
    print_msg "Creating OAM Authentication Policy"
 
    ADMIN_URL="http://$OAM_ADMIN_LBR_HOST:$OAM_ADMIN_LBR_PORT/oam/services/rest/11.1.2.0.0/ssa/policyadmin/authnpolicy"
@@ -1224,7 +1224,7 @@ create_auth_policy()
         echo "Success"
     fi
 
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Create Authentication Policy in OAM" $ST $ET >> $LOGDIR/timings.log
 }
 
@@ -1258,51 +1258,51 @@ delete_auth_policy()
 create_test_user()
 {
 
-     DIR_TYPE=$1
+   DIR_TYPE=$1
 
-     ST=`date +%s`
-     print_msg "Create Test User $OAA_USER in LDAP"
+   ST=$(date +%s)
+   print_msg "Create Test User $OAA_USER in LDAP"
 
-     cp $TEMPLATE_DIR/test_user.ldif $WORKDIR
-     filename=$WORKDIR/test_user.ldif
+   cp $TEMPLATE_DIR/test_user.ldif $WORKDIR
+   filename=$WORKDIR/test_user.ldif
 
-     update_variable "<OAA_USER>" $OAA_USER $filename
-     update_variable "<OAA_USER_PWD>" $OAA_USER_PWD $filename
-     update_variable "<OAA_USER_EMAIL>" $OAA_USER_EMAIL $filename
-     update_variable "<OAA_USER_POSTCODE>" $OAA_USER_POSTCODE $filename
-     update_variable "<LDAP_USER_SEARCHBASE>" $LDAP_USER_SEARCHBASE $filename
-     update_variable "<LDAP_GROUP_SEARCHBASE>" $LDAP_GROUP_SEARCHBASE $filename
-     update_variable "<LDAP_SEARCHBASE>" $LDAP_SEARCHBASE $filename
-     update_variable "<OAA_USER_GROUP>" $OAA_USER_GROUP $filename
+   update_variable "<OAA_USER>" $OAA_USER $filename
+   update_variable "<OAA_USER_PWD>" $OAA_USER_PWD $filename
+   update_variable "<OAA_USER_EMAIL>" $OAA_USER_EMAIL $filename
+   update_variable "<OAA_USER_POSTCODE>" $OAA_USER_POSTCODE $filename
+   update_variable "<LDAP_USER_SEARCHBASE>" $LDAP_USER_SEARCHBASE $filename
+   update_variable "<LDAP_GROUP_SEARCHBASE>" $LDAP_GROUP_SEARCHBASE $filename
+   update_variable "<LDAP_SEARCHBASE>" $LDAP_SEARCHBASE $filename
+   update_variable "<OAA_USER_GROUP>" $OAA_USER_GROUP $filename
 
 
-     if [ "$DIR_TYPE" = "oud" ]
-     then
-         cp $TEMPLATE_DIR/oud_test_user.sh $WORKDIR
-         shfile=$WORKDIR/oud_test_user.sh
-         update_variable "<OUD_POD_PREFIX>" $OUD_POD_PREFIX $shfile
-         update_variable "<OUDNS>" $OUDNS $shfile
-         update_variable "<LDAP_ADMIN_USER>" $LDAP_ADMIN_USER $shfile
-         update_variable "<LDAP_ADMIN_PWD>" $LDAP_ADMIN_PWD $shfile
+   if [ "$DIR_TYPE" = "oud" ]
+   then
+     cp $TEMPLATE_DIR/oud_test_user.sh $WORKDIR
+     shfile=$WORKDIR/oud_test_user.sh
+     update_variable "<LDAP_HOST>" ${LDAP_EXTERNAL_HOST:=$OUD_POD_PREFIX-oud-ds-rs-lbr-ldap.$OUDNS.svc.cluster.local} $shfile
+     update_variable "<LDAP_PORT>" ${LDAP_EXTERNAL_PORT:=1389} $shfile
+     update_variable "<LDAP_ADMIN_USER>" $LDAP_ADMIN_USER $shfile
+     update_variable "<LDAP_ADMIN_PWD>" $LDAP_ADMIN_PWD $shfile
 
-         kubectl cp $filename $OUDNS/$OUD_POD_PREFIX-oud-ds-rs-0:/u01/oracle/config-input  > $LOGDIR/create_test_user.log 2>&1
-         kubectl cp $shfile $OUDNS/$OUD_POD_PREFIX-oud-ds-rs-0:/u01/oracle/config-input  >> $LOGDIR/create_test_user.log 2>&1
-         kubectl exec -ti -n $OUDNS $OUD_POD_PREFIX-oud-ds-rs-0  -c oud-ds-rs -- /u01/oracle/config-input/oud_test_user.sh >> $LOGDIR/create_test_user.log 2>&1
-     fi
+     kubectl cp $filename $OUDNS/$OUD_POD_PREFIX-oud-ds-rs-0:/u01/oracle/config-input  > $LOGDIR/create_test_user.log 2>&1
+     kubectl cp $shfile $OUDNS/$OUD_POD_PREFIX-oud-ds-rs-0:/u01/oracle/config-input  >> $LOGDIR/create_test_user.log 2>&1
+     kubectl exec -ti -n $OUDNS $OUD_POD_PREFIX-oud-ds-rs-0  -c oud-ds-rs -- /u01/oracle/config-input/oud_test_user.sh >> $LOGDIR/create_test_user.log 2>&1
+   fi
 
-     if [ $? -gt 0 ]
-     then
-           grep -q exists $LOGDIR/create_test_user.log
-           if [ $? = 0 ]
-           then 
-              printf "Already exists\n"
-           else
-             print_status 1 $LOGDIR/create_test_user.log
-           fi
+   if [ $? -gt 0 ]
+   then
+     grep -q exists $LOGDIR/create_test_user.log
+     if [ $? = 0 ]
+     then 
+       printf "Already exists\n"
      else
-       printf " Success\n"
+       print_status 1 $LOGDIR/create_test_user.log
      fi
+   else
+     printf " Success\n"
+   fi
 
-     ET=`date +%s`
-     print_time STEP "Create Test User $OAA_USER in LDAP" $ST $ET >> $LOGDIR/timings.log
+   ET=$(date +%s)
+   print_time STEP "Create Test User $OAA_USER in LDAP" $ST $ET >> $LOGDIR/timings.log
 }

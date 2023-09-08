@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2022, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # This is an example of a script which can be used to deploy Oracle Advanced Authentication
@@ -11,16 +11,48 @@
 #
 # Usage: provision_oaa.sh
 #
-. common/functions.sh
-. common/oaa_functions.sh
+SCRIPTDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+while getopts 'r:p:' OPTION
+do
+  case "$OPTION" in
+    r)
+      RSPFILE=$SCRIPTDIR/responsefile/$OPTARG
+     ;;
+    p)
+      PWDFILE=$SCRIPTDIR/responsefile/$OPTARG
+     ;;
+    ?)
+     echo "script usage: $(basename $0) [-r responsefile -p passwordfile] " >&2
+     exit 1
+     ;;
+   esac
+done
+
+
+RSPFILE=${RSPFILE=$SCRIPTDIR/responsefile/idm.rsp}
+PWDFILE=${PWDFILE=$SCRIPTDIR/responsefile/.idmpwds}
 
 . $RSPFILE
-TEMPLATE_DIR=$SCRIPTDIR/templates/oaa
+if [ $? -gt 0 ]
+then
+    echo "Responsefile : $RSPFILE does not exist."
+    exit 1
+fi
 
+. $PWDFILE
+if [ $? -gt 0 ]
+then
+    echo "Passwordfile : $PWDFILE does not exist."
+    exit 1
+fi
 
+. $SCRIPTDIR/common/functions.sh
+. $SCRIPTDIR/common/oaa_functions.sh
 
 START_TIME=`date +%s`
 
+TEMPLATE_DIR=$SCRIPTDIR/templates/oaa
 WORKDIR=$LOCAL_WORKDIR/OAA
 LOGDIR=$WORKDIR/logs
 
@@ -83,12 +115,6 @@ then
    update_progress
 fi
 
-new_step
-if [ $STEPNO -gt $PROGRESS ]
-then
-   create_namespace $OAACONS
-   update_progress
-fi
 
 # Create a Container Registry Secret if requested
 #
@@ -100,14 +126,6 @@ then
 fi
 
 
-# Create a Container Registry Secret if requested
-#
-new_step
-if [ $STEPNO -gt $PROGRESS ] &&  [ "$CREATE_REGSECRET" = "true" ]
-then
-   create_registry_secret $REGISTRY $REG_USER $REG_PWD $OAACONS
-   update_progress
-fi
 
 # Create GitHub Secret if requested
 #
@@ -187,21 +205,6 @@ then
    update_progress
 fi
 
-new_step
-if [ $STEPNO -gt $PROGRESS ]
-then
-   copy_db_files 
-   update_progress
-fi
-
-# Create Schemas
-#
-new_step
-if [ $STEPNO -gt $PROGRESS ]
-then
-   create_schemas
-   update_progress
-fi
 
 # Enable OAM Auth
 
@@ -260,14 +263,6 @@ then
     fi
 fi
 
-# Deploy Coherence
-#
-new_step
-if [ $STEPNO -gt $PROGRESS ]
-then
-   deploy_coherence
-   update_progress
-fi
 
 # Deploy OAA
 #
@@ -278,15 +273,6 @@ then
    update_progress
 fi
 
-
-# Update URLs
-#
-new_step
-if [ $STEPNO -gt $PROGRESS ]
-then
-   update_urls
-   update_progress
-fi
 
 
 # Add OHS entries for OAA to OAM ohs config files if Ingress is not being used
@@ -334,8 +320,25 @@ then
    check_running $OAANS push 0
    check_running $OAANS spui 0
    check_running $OAANS policy 0
-   check_running $OAANS cache-rest-0 0
    check_running $OAANS fido 0
+   update_progress
+fi
+
+# Import Snapshot
+#
+new_step
+if [ $STEPNO -gt $PROGRESS ]
+then
+   import_snapshot
+   update_progress
+fi
+# Update URLs
+#
+new_step
+if [ $STEPNO -gt $PROGRESS ]
+then
+   check_running $OAMNS adminserver 0
+   update_urls
    update_progress
 fi
 
@@ -416,7 +419,7 @@ then
 fi
 
 FINISH_TIME=`date +%s`
+print_time TOTAL "Create OAA" $START_TIME $FINISH_TIME 
 print_time TOTAL "Create OAA" $START_TIME $FINISH_TIME >> $LOGDIR/timings.log
 
-cat $LOGDIR/timings.log
 touch $LOCAL_WORKDIR/oaa_installed

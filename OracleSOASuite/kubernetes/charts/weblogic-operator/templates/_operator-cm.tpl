@@ -1,10 +1,11 @@
-# Copyright (c) 2018, 2021, Oracle and/or its affiliates.
+# Copyright (c) 2018, 2022, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 
 {{- define "operator.operatorConfigMap" }}
 ---
 apiVersion: "v1"
 data:
+  helmChartVersion: {{ .Chart.Version }}
   {{- if .externalRestEnabled }}
     {{- if (hasKey . "externalRestIdentitySecret") }}
   externalRestIdentitySecret: {{ .externalRestIdentitySecret | quote }}
@@ -20,10 +21,11 @@ data:
   {{- end }}
   {{- end }}
   serviceaccount: {{ .serviceAccount | quote }}
-  domainNamespaceSelectionStrategy: {{ (default "List" .domainNamespaceSelectionStrategy) | quote }}
+  {{- if .domainNamespaceSelectionStrategy }}
+  domainNamespaceSelectionStrategy: {{ .domainNamespaceSelectionStrategy | quote }}
+  {{- end }}
+  {{- if .domainNamespaces }}
   domainNamespaces: {{ .domainNamespaces | uniq | sortAlpha | join "," | quote }}
-  {{- if .dedicated }}
-  dedicated: {{ .dedicated | quote }}
   {{- end }}
   {{- if .domainNamespaceLabelSelector }}
   domainNamespaceLabelSelector: {{ .domainNamespaceLabelSelector | quote }}
@@ -54,12 +56,6 @@ data:
   {{- end }}
   {{- if .kubernetesPlatform }}
   kubernetesPlatform: {{ .kubernetesPlatform | quote }}
-  {{- end }}
-  {{- if .domainPresenceFailureRetryMaxCount }}
-  domainPresenceFailureRetryMaxCount: {{ .domainPresenceFailureRetryMaxCount | quote }}
-  {{- end }}
-  {{- if .domainPresenceFailureRetrySeconds }}
-  domainPresenceFailureRetrySeconds: {{ .domainPresenceFailureRetrySeconds | quote }}
   {{- end }}
 kind: "ConfigMap"
 metadata:

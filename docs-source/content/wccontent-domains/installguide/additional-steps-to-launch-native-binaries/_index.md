@@ -10,8 +10,9 @@ This section provides the steps required to use product native binaries with use
 
 ### Issue with Launching Headful User Interfaces for Oracle WebCenter Content Native Binaries
 
-Oracle WebCenter Content (UCM) provide a set of native binaries with headful UIs, which are located inside the persistent volume, as part of the domain. 
-WebCenter Content container images are, by default, created with Oracle slim linux image, which doesn't come with all the packages pre-installed to support headful applications with UIs to be launched. With current Oracle WebCenter Content container images, running native applications fails, being unable to launch UIs.
+Oracle WebCenter Content (UCM) provide a set of native binaries with headful UIs, which are delivered as part of the product container image. 
+WebCenter Content container images are, by default, created with Oracle slim linux image, which doesn't come with all the packages pre-installed to support headful applications with UIs to be launched. UCM provides many such native binaries which uses JAVA AWT for UI support.
+With current Oracle WebCenter Content container images, running native applications fails, being unable to launch UIs.
 
 The following sections document the solution, by providing a set of instructions, enabling users to run UCM native applications with UIs.
 
@@ -48,8 +49,8 @@ The arguments required for updating the image can be passed as file to the WebLo
     '--fromImage' option provides the existing docker image that has to be updated.
     '--tag' option should be provided with the new tag for the updated image.
     '--additionalBuildCommands' option should be provided with the above created additional build commands file.
-    '--chown oracle:root' option should be provided to update file permissions.
-	
+	'--chown oracle:root' option should be provided to update file permissions.
+
 Below is a sample build argument (buildArgs) file, to be used for updating the image,
 
 
