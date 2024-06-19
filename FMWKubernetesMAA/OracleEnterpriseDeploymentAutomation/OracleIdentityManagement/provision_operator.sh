@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # This is an example of deploying the WebLogic Kubernetes Operator
@@ -81,7 +81,6 @@ echo "--------------------------------------------------------------------" >> $
 STEPNO=1
 PROGRESS=$(get_progress)
 
-new_step
 if [ $STEPNO -gt $PROGRESS ]
 then
    download_samples 
@@ -112,14 +111,14 @@ fi
 
 # Create a Container Registry Secret if requested
 #
-new_step
-if [ $STEPNO -gt $PROGRESS ]
+if [ "$CREATE_REGSECRET" = "true" ] && [ "$OPER_ENABLE_SECRET" = "true" ]
 then
-   if [ "$CREATE_REGSECRET" = "true" ]
-   then
-      create_registry_secret $REGISTRY $REG_USER $REG_PWD $OPERNS
-   fi
-   update_progress
+  new_step
+  if [ $STEPNO -gt $PROGRESS ]
+  then
+     create_registry_secret $REGISTRY $REG_USER $REG_PWD $OPERNS
+     update_progress
+  fi
 fi
 
 new_step
@@ -140,10 +139,65 @@ fi
 new_step
 if [ $STEPNO -gt $PROGRESS ]
 then
-    check_running $OPERNS weblogic-operator 10
+    check_running $OPERNS weblogic-operator 10 true
     update_progress
 fi
 
+if [ "$USE_ELK" = "true" ]
+then
+   new_step
+   if [ $STEPNO -gt $PROGRESS ]
+   then
+       create_elk_secret $OPERNS
+       update_progress
+   fi
+
+   new_step
+   if [ $STEPNO -gt $PROGRESS ]
+   then
+       create_cert_secret $OPERNS
+       update_progress
+   fi
+
+   new_step
+   if [ $STEPNO -gt $PROGRESS ]
+   then
+       download_oper_cm
+       update_progress
+   fi
+
+   new_step
+   if [ $STEPNO -gt $PROGRESS ]
+   then
+       update_oper_cm
+       update_progress
+   fi
+
+   new_step
+   if [ $STEPNO -gt $PROGRESS ]
+   then
+       load_oper_cm
+       update_progress
+   fi
+
+   new_step
+   if [ $STEPNO -gt $PROGRESS ]
+   then
+       restart_operator
+       update_progress
+   fi
+
+   new_step
+   if [ $STEPNO -gt $PROGRESS ]
+   then
+     create_elk_dataview wko
+     update_progress
+   fi
+fi
+  
+FINISH_TIME=`date +%s`
+print_time TOTAL "Install WebLogic Kubernetes Operator " $START_TIME $FINISH_TIME
+print_time TOTAL "Install WebLogic Kubernetes Operator" $START_TIME $FINISH_TIME >> $LOGDIR/timings.log
 touch $LOCAL_WORKDIR/operator_installed
 exit
 

@@ -1,4 +1,4 @@
-# Copyright (c) 2022, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2022, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # This is an example of procedures used to configure OHS
@@ -232,7 +232,7 @@ create_instance()
    print_status $? $LOGDIR/$HOSTNAME/create_instance.log
 
    ET=$(date +%s)
-   print_time STEP "Create Instance $OHS_NAME on  $HOSTNAME" $ST $ET >> $LOGDIR/timings.log
+   print_time STEP "Create Instance $OHS_NAME on $HOSTNAME" $ST $ET >> $LOGDIR/timings.log
 
 }
 
@@ -242,21 +242,43 @@ create_instance()
 tune_instance()
 {
    HOSTNAME=$1
+   OHS_NAME=$2
    print_msg "Tune Oracle Http Server Instance on $HOSTNAME"
   
    ST=$(date +%s)
 
    $SCP $TEMPLATE_DIR/ohs.sedfile ${OHS_USER}@$HOSTNAME:. > $LOGDIR/$HOSTNAME/tune_instance.log 2>&1
-   echo $SCP ${OHS_USER}@$HOSTNAME "sed -i -f ohs.sedfile $OHS_DOMAIN/config/fmwconfig/components/OHS/ohs?/httpd.conf" > $LOGDIR/$HOSTNAME/tune_instance.log 2>&1
-   $SSH ${OHS_USER}@$HOSTNAME "sed -i -f ohs.sedfile $OHS_DOMAIN/config/fmwconfig/components/OHS/ohs?/httpd.conf" >> $LOGDIR/$HOSTNAME/tune_instance.log 2>&1
+   echo $SCP ${OHS_USER}@$HOSTNAME "sed -i -f ohs.sedfile $OHS_DOMAIN/config/fmwconfig/components/OHS/$OHS_NAME/httpd.conf" > $LOGDIR/$HOSTNAME/tune_instance.log 2>&1
+   $SSH ${OHS_USER}@$HOSTNAME "sed -i -f ohs.sedfile $OHS_DOMAIN/config/fmwconfig/components/OHS/$OHS_NAME/httpd.conf" >> $LOGDIR/$HOSTNAME/tune_instance.log 2>&1
 
    print_status $? $LOGDIR/$HOSTNAME/tune_instance.log
 
    ET=$(date +%s)
-   print_time STEP "Tune Instance $OHS_NAME on  $HOSTNAME" $ST $ET >> $LOGDIR/timings.log
+   print_time STEP "Tune Instance $OHS_NAME on $HOSTNAME" $ST $ET >> $LOGDIR/timings.log
 
 }  
 
+#
+# Create OHS Health-check
+#
+create_hc()
+{
+   HOSTNAME=$1
+   OHS_NAME=$2
+
+   print_msg "Create Health Check on $HOSTNAME"
+  
+   ST=$(date +%s)
+
+   echo $SCP $TEMPLATE_DIR/health-check.html ${OHS_USER}@$HOSTNAME:$OHS_DOMAIN/config/fmwconfig/components/OHS/$OHS_NAME/htdocs > $LOGDIR/$HOSTNAME/create_hc.log 2>&1
+   $SCP $TEMPLATE_DIR/health-check.html ${OHS_USER}@$HOSTNAME:$OHS_DOMAIN/config/fmwconfig/components/OHS/$OHS_NAME/htdocs >> $LOGDIR/$HOSTNAME/create_hc.log 2>&1
+
+   print_status $? $LOGDIR/$HOSTNAME/create_hc.log
+
+   ET=$(date +%s)
+   print_time STEP "Create Health check on $HOSTNAME" $ST $ET >> $LOGDIR/timings.log
+
+}  
 #
 # Start Node Manager
 #
@@ -377,7 +399,17 @@ update_webgate()
 
    ST=$(date +%s)
 
-   $SCP $TEMPLATE_DIR/webgate_rest.conf ${OHS_USER}@$HOSTNAME:. > $LOGDIR/$HOSTNAME/update_wg.log 2>&1
+
+   cp $TEMPLATE_DIR/webgate_rest.conf $WORKDIR/webgate_rest.conf> $LOGDIR/$HOSTNAME/update_wg.log 2>&1
+   if [ ! "$OHS_LBR_NETWORK" = "" ]
+   then
+      echo "" >> $WORKDIR/webgate_rest.conf
+      echo "<LocationMatch \"/health-check.html\">" >> $WORKDIR/webgate_rest.conf
+      echo "    require host $OHS_LBR_NETWORK" >> $WORKDIR/webgate_rest.conf
+      echo  "</LocationMatch>"  >> $WORKDIR/webgate_rest.conf
+   fi
+
+   $SCP $WORKDIR/webgate_rest.conf ${OHS_USER}@$HOSTNAME:. > $LOGDIR/$HOSTNAME/update_wg.log 2>&1
    $SSH ${OHS_USER}@$HOSTNAME "cat \$HOME/webgate_rest.conf >>  $OHS_DOMAIN/config/fmwconfig/components/OHS/$OHS_NAME/webgate.conf"  > $LOGDIR/$HOSTNAME/enable_rest.log 2>&1
 
    print_status $? $LOGDIR/$HOSTNAME/enable_rest.log
@@ -407,4 +439,190 @@ copy_lbr_cert()
 
    ET=$(date +%s)
    print_time STEP "Copy $OAM_LOGIN_LBR_HOST Certificate to WebGate on $HOSTNAME" $ST $ET >> $LOGDIR/timings.log
+}
+
+update_ohs_route()
+{
+   print_msg "Change OHS Routing"
+   echo
+
+   ST=$(date +%s)
+
+   FILES=$(ls -1 $WORKDIR/*vh.conf)
+   K8NODES=$(get_k8nodes)
+
+
+   for file in $FILES
+   do
+    printf "\t\t\tProcessing File:$file - "
+    PORTS=$(grep WebLogicCluster $file | sed "s/WebLogicCluster//" | awk 'BEGIN { RS = "," } { print $0 }' | cut -f2 -d: | sort | uniq)
+    for PORT in $PORTS
+    do
+      ROUTE="WebLogicCluster "
+      for NODE in $K8NODES
+      do
+        ROUTE="$ROUTE,$NODE:$PORT"
+      done
+      DIRECTIVE=$(echo $ROUTE | sed 's/,//')
+      sed -i "/:$PORT/c\        $DIRECTIVE" $file >> $LOGDIR/update_ohs_route.log 2>&1
+    done
+    print_status $? $LOGDIR/update_ohs_route.log
+   done
+
+   ET=$(date +%s)
+   print_time STEP "Change OHS Routing" $ST $ET >> $LOGDIR/timings.log
+}
+
+
+update_ohs_hostname()
+{
+   print_msg "Change OHS Virtual Host Name "
+   ST=$(date +%s)
+   OLD_HOSTNAME=$( grep "<VirtualHost" $WORKDIR/*.conf | cut -f2 -d: | awk '{ print $2 }' | head -1 )
+   mkdir $WORKDIR/$OHS_HOST1  2>/dev/null
+   cp $WORKDIR/*.conf $WORKDIR/$OHS_HOST1
+   if [ ! "$OLD_HOSTNAME" = "$OHS_HOST1" ]
+   then
+      printf "\n\t\t\tChanging $OLD_HOSTNAME to $OHS_HOST1 - "
+      sed -i "s/$OLD_HOSTNAME/$OHS_HOST1/" $WORKDIR/$OHS_HOST1/*.conf > $LOGDIR/update_vh.log 2>&1
+      print_status $? $LOGDIR/update_vh.log
+   fi
+
+   if [ ! "$OHS_HOST2" = "" ]
+   then
+      mkdir $WORKDIR/$OHS_HOST2  2>/dev/null
+      cp $WORKDIR/*.conf $WORKDIR/$OHS_HOST2
+      printf "\n\t\t\tChanging $OLD_HOSTNAME to $OHS_HOST2 - "
+      sed -i "s/$OLD_HOSTNAME/$OHS_HOST2/" $WORKDIR/$OHS_HOST2/*.conf >> $LOGDIR/update_vh.log 2>&1
+      print_status $? $LOGDIR/update_vh.log
+   fi
+   ET=$(date +%s)
+   print_time STEP "Change OHS Virtual HostName" $ST $ET >> $LOGDIR/timings.log
+}
+
+  
+copy_ohs_dr_config()
+{
+   print_msg "Copy OHS Config"
+   ST=$(date +%s)
+   
+   printf "\n\t\t\tCopy OHS Config to $OHS_HOST1 - "
+   $SCP $WORKDIR/$OHS_HOST1/*vh.conf $OHS_HOST1:$OHS_DOMAIN/config/fmwconfig/components/OHS/$OHS1_NAME/moduleconf/ > $LOGDIR/copy_ohs_config.log 2>&1
+   print_status $? $LOGDIR/copy_ohs_config.log
+
+   if [ ! "$OHS_HOST2" = "" ]
+   then
+      printf "\t\t\tCopy OHS Config to $OHS_HOST2 - "
+      $SCP $WORKDIR/$OHS_HOST2/*vh.conf $OHS_HOST2:$OHS_DOMAIN/config/fmwconfig/components/OHS/$OHS2_NAME/moduleconf/ > $LOGDIR/copy_ohs_config.log 2>&1
+      print_status $? $LOGDIR/copy_ohs_config.log
+   fi
+   ET=$(date +%s)
+   print_time STEP "Change OHS Routing" $ST $ET >> $LOGDIR/timings.log
+}
+
+# Add location directives to OHS Config Files
+#
+create_location()
+{
+  locfile=$1
+  nodes=$2
+  ohs_path=$3
+
+  printf "\t\t\tAdding location Directives to OHS conf file  - "
+  while IFS= read -r LOCATIONS
+  do
+     file=$(echo $LOCATIONS | cut -f1 -d:)
+     location=$(echo $LOCATIONS | cut -f2 -d:)
+     port=$(echo $LOCATIONS | cut -f3 -d:)
+     ssl=$(echo $LOCATIONS | cut -f4 -d:)
+
+     conf_file=${file}_vh.conf
+
+     case $file in
+       iadadmin)
+        protocol=$OAM_ADMIN_LBR_PROTOCOL
+        ;;
+       login)
+        protocol=$OAM_LOGIN_LBR_PROTOCOL
+        ;;
+       prov)
+        protocol=$OIG_LBR_PROTOCOL
+        ;;
+       igdinternal)
+        protocol=$OIG_LBR_INT_PROTOCOL
+        ;;
+       igdadmin)
+        protocol=$OIG_ADMIN_LBR_PROTOCOL
+        ;;
+       *)
+         echo "FILE:$file"
+        ;;
+     esac
+
+     sed -i "/<\/VirtualHost>/d" $ohs_path/$conf_file
+
+     printf "Adding Location $location to $ohs_path/$conf_file - " >> $LOGDIR/$file.log
+     grep -q "$location>" $ohs_path/$conf_file
+     if [ $? -eq 1 ]
+     then
+       printf "\n    <Location $location>" >> $ohs_path/$conf_file
+       printf "\n        WLSRequest ON" >> $ohs_path/$conf_file
+       printf "\n        DynamicServerList OFF" >> $ohs_path/$conf_file
+
+       if [ "$ssl" = "Y" ] && [ "$USE_INGRESS"  = "false" ]
+       then
+           printf "\n        SecureProxy ON" >> $ohs_path/$conf_file
+           printf "\n        WLSSLWallet   \"${ORACLE_INSTANCE}/ohswallet\"" >> $ohs_path/$conf_file
+       fi
+
+       if [ "$file" = "login" ]
+       then
+          printf "\n        WLCookieName OAMJSESSIONID" >> $ohs_path/$conf_file
+          echo $location | grep -q well-known
+           if [ $? -eq 0 ]
+          then
+              printf "\n        PathTrim /.well-known" >> $ohs_path/$conf_file
+              printf "\n        PathPrepend /oauth2/rest" >> $ohs_path/$conf_file
+          fi
+
+       elif [ "$file" = "prov" ]
+       then
+          printf "\n        WLCookieName oimjsessionid" >> $ohs_path/$conf_file
+       elif [ "$file" = "igdinternal" ]
+       then
+          if [ "$location" = "/spmlws" ] 
+          then
+              printf "\n        PathTrim /weblogic" >> $ohs_path/$conf_file
+          fi
+       fi
+
+       if [ "$protocol" = "https" ]
+       then
+          printf "\n        WLProxySSL ON" >> $ohs_path/$conf_file
+          printf "\n        WLProxySSLPassThrough ON" >> $ohs_path/$conf_file
+       fi
+
+       cluster_cmd="        WebLogicCluster " >> $ohs_path/$conf_file
+       node_count=0
+       for node in $nodes
+       do
+          if [ $node_count -eq 0 ]
+          then
+             cluster_cmd=$cluster_cmd"$node:$(($port))"
+          else
+             cluster_cmd=$cluster_cmd",$node:$(($port))"
+          fi
+          ((node_count++))
+       done
+       printf "\n$cluster_cmd" >> $ohs_path/$conf_file
+
+       printf "\n    </Location>\n" >> $ohs_path/$conf_file
+       echo "Success" >>$LOGDIR/$file.log
+    else
+       echo "Already Exists" >>$LOGDIR/$file.log
+    fi
+
+    printf "\n</VirtualHost>\n" >> $ohs_path/$conf_file
+  done < $locfile
+
 }

@@ -1,4 +1,4 @@
-# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # This is an example of procedures used to configure OAM
@@ -36,11 +36,19 @@ create_persistent_volumes()
 #
 edit_domain_creation_file()
 {
-     filename=$1
-
      ST=`date +%s`
      print_msg "Creating Domain Configuration File"
-     cp $WORKDIR/samples/create-access-domain/domain-home-on-pv/create-domain-inputs.yaml $filename
+
+     if [ "$WLS_CREATION_TYPE" = "WLST" ]
+     then
+        filename=$WORKDIR/create-domain-inputs.yaml
+        cp $WORKDIR/samples/create-access-domain/domain-home-on-pv/create-domain-inputs.yaml $filename
+     else
+        filename=$WORKDIR/create-domain-wdt.yaml
+        cp $WORKDIR/samples/create-access-domain/domain-home-on-pv/wdt-utils/generate_models_utils/create-domain-wdt.yaml $filename
+        replace_value2 edgInstall true $filename
+     fi
+
      ST=`date +%s`
      if [  "$CREATE_REGSECRET" = "true" ]
      then
@@ -68,12 +76,77 @@ edit_domain_creation_file()
      replace_value2 t3ChannelPort $OAM_ADMIN_T3_K8 $filename
      replace_value2 datasourceType agl $filename
 
+     if [ "$WLS_CREATION_TYPE" = "WDT" ]
+     then
+        replace_value2 weblogicDomainStorageNFSServer $PVSERVER $filename
+        replace_value2 weblogicDomainStorageType NFS $filename
+        replace_value2 weblogicDomainStoragePath $OAM_SHARE $filename
+        replace_value2 edgInstall true $filename
+        replace_value2 oamServerJavaParams "$OAMSERVER_JAVA_PARAMS" $filename
+        replace_value2 oamMaxCPU "$OAM_MAX_CPU" $filename
+        replace_value2 oamCPU "$OAM_CPU" $filename
+        replace_value2 oamMaxMemory "$OAM_MAX_MEMORY" $filename
+        replace_value2 oamMemory "$OAM_MEMORY" $filename
+     fi
      print_status $?
      printf "\t\t\tCopy saved to $WORKDIR\n"
      ET=`date +%s`
      print_time STEP "Create Domain Configuration File" $ST $ET >> $LOGDIR/timings.log
 }
 
+# Build WDT Domain Creation Image
+#
+build_wdt_image()
+{
+     print_msg "Build WDT Domain Creation Image"
+
+     cd $WORKDIR/samples/create-access-domain/domain-home-on-pv/wdt-utils/build-domain-creation-image/
+     filename=$WORKDIR/build-domain-creation-image.properties
+     cp properties/build-domain-creation-image.properties $filename
+     if [ $? -gt 0 ]
+     then
+        echo "Failed to create copy file $WORKDIR/samples/create-access-domain/domain-home-on-pv/wdt-utils/build-domain-creation-image/properties/build-domain-creation-image.properties"
+        exit 1
+     fi
+
+     JAVA_HOME=$(dirname $(dirname $(which java)))
+     if [ "$JAVA_HOME" = "" ]
+     then
+        echo "JAVA_HOME must be set to continue"
+        exit 1
+     fi
+
+     replace_value JAVA_HOME "$JAVA_HOME" $filename
+     replace_value REPOSITORY ${WDT_IMAGE_REGISTRY}/oam_wdt $filename
+     replace_value REG_USER $WDT_IMAGE_REG_USER $filename
+     replace_value IMAGE_PUSH_REQUIRES_AUTH true $filename
+     echo "REG_PASSWORD=\"$WDT_IMAGE_REG_PWD\"" > $WORKDIR/.buildpwd
+     replace_value WDT_MODEL_FILE "$WORKDIR/weblogic-domains/$OAM_DOMAIN_NAME/oam.yaml" $filename
+     replace_value WDT_VARIABLE_FILE "$WORKDIR/weblogic-domains/$OAM_DOMAIN_NAME/oam.properties" $filename
+     replace_value IMAGE_TAG $OAM_DOMAIN_NAME $filename
+
+     ./build-domain-creation-image.sh -i $filename -p $WORKDIR/.buildpwd > $LOGDIR/build_wdt_image.log 2>&1
+     print_status $? $LOGDIR/build_wdt_image.log
+     ET=`date +%s`
+     print_time STEP "Generate WDT Model Files" $ST $ET >> $LOGDIR/timings.log
+}
+
+add_image_wdt()
+{
+     print_msg "Adding image name to domain.yaml"
+
+     filename=$WORKDIR/weblogic-domains/$OAM_DOMAIN_NAME/domain.yaml
+     update_variable "%DOMAIN_CREATION_IMAGE%" "${WDT_IMAGE_REGISTRY}/oam_wdt:$OAM_DOMAIN_NAME" $filename
+
+     if [ ! "$REGISTRY" = "$WDT_IMAGE_REGISTRY" ]
+     then
+        sed -i "/regcred/a\  - name: regcred2\n" $filename
+     fi
+
+     print_status $?
+     ET=`date +%s`
+     print_time STEP "Adding image name to domain.yaml" $ST $ET >> $LOGDIR/timings.log
+}
 # Update Java parameters for WebLogic Clusters in domain.yaml
 
 update_java_parameters()
@@ -81,6 +154,10 @@ update_java_parameters()
      printf "\t\t\tUpdating Java Parameters - "
      cp $TEMPLATE_DIR/oamDomain.sedfile $WORKDIR
      update_variable "<OAMSERVER_JAVA_PARAMS>" "$OAMSERVER_JAVA_PARAMS" $WORKDIR/oamDomain.sedfile
+     update_variable "<OAM_MEMORY>" "$OAM_MEMORY" $WORKDIR/oamDomain.sedfile
+     update_variable "<OAM_MAX_MEMORY>" "$OAM_MAX_MEMORY" $WORKDIR/oamDomain.sedfile
+     update_variable "<OAM_MAX_CPU>" "$OAM_MAX_CPU" $WORKDIR/oamDomain.sedfile
+     update_variable "<OAM_CPU>" "$OAM_CPU" $WORKDIR/oamDomain.sedfile
      cd $WORKDIR/samples/create-access-domain/domain-home-on-pv
      
      sed -i -f $WORKDIR/oamDomain.sedfile output/weblogic-domains/$OAM_DOMAIN_NAME/domain.yaml
@@ -136,6 +213,52 @@ create_oam_domain()
      print_time STEP "Initialise the Domain" $ST $ET >> $LOGDIR/timings.log
 
 }
+
+create_oam_domain_wdt()
+{
+
+     print_msg "Initialising the Domain"
+     ST=`date +%s`
+     
+     printf "\n\t\t\tCreating the domain - "
+     oper_pod=$(kubectl get pods -n $OPERNS --no-headers=true | grep -v webhook | head -1 | awk '{ print $1 }')
+     if [ "$oper_pod" = "" ]
+     then
+        echo "Failed to get the name of the WebLogic Operator Pod."
+        exit 1
+     fi
+
+     kubectl create -f $WORKDIR/weblogic-domains/$OAM_DOMAIN_NAME/domain.yaml > $LOGDIR/create_domain.log 2>$LOGDIR/create_domain.log
+     print_status $? $LOGDIR/create_domain.log
+
+     
+     printf "\t\t\tChecking no errors in WebLogic Operator log - "
+     sleep 30
+     kubectl logs -n $OPERNS $oper_pod --since=60s| grep $OAM_DOMAIN_NAME | grep SEVERE >> $LOGDIR/create_domain.log
+     grep -q SEVERE $LOGDIR/create_domain.log
+     if [ $? -eq 0 ]
+     then 
+        echo "Failed - Check Logfile: $LOGDIR/create_domain.log"
+        exit 1
+     fi
+
+     sleep 30
+     kubectl logs -n $OPERNS $oper_pod --since=120s| grep $OAM_DOMAIN_NAME | grep SEVERE >> $LOGDIR/create_domain.log
+     grep -q SEVERE $LOGDIR/create_domain.log
+     if [ $? -eq 0 ]
+     then 
+        echo "Failed - Check Logfile: $LOGDIR/create_domain.log"
+        exit 1
+     else
+        echo "Success"
+     fi
+
+     ET=`date +%s`
+
+     print_time STEP "Initialise the Domain" $ST $ET >> $LOGDIR/timings.log
+
+}
+
 #
 # Start the domain for the first time.
 #
@@ -154,12 +277,6 @@ perform_first_start()
      printf "\t\t\tPatching the Domain - "
      kubectl apply -f output/weblogic-domains/$OAM_DOMAIN_NAME/domain.yaml > $LOGDIR/first_start.log
      print_status $? $LOGDIR/first_start.log
-
-
-     # Check that the domain is started
-     #
-     check_running $OAMNS adminserver
-     check_running $OAMNS oam-server1
 
      ET=`date +%s`
 
@@ -720,7 +837,7 @@ create_oam_ohs_config()
 {
    ST=`date +%s`
    
-   print_msg "Creating OHS Config Files" 
+   print_msg "Creating OHS Config Files for $OHS_HOST1" 
    OHS_PATH=$LOCAL_WORKDIR/OHS
    if  [ ! -d $OHS_PATH/$OHS_HOST1 ]
    then
@@ -733,38 +850,36 @@ create_oam_ohs_config()
 
    if [ ! "$OHS_HOST1" = "" ]
    then
+      printf "\n\t\t\tCreating Virtual Host Files - "
       cp $TEMPLATE_DIR/iadadmin_vh.conf $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf
       cp $TEMPLATE_DIR/login_vh.conf $OHS_PATH/$OHS_HOST1/login_vh.conf
       update_variable "<OHS_HOST>" $OHS_HOST1 $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf
       update_variable "<OHS_PORT>" $OHS_PORT $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf
+      update_variable "<OAM_ADMIN_LBR_PROTOCOL>" $OAM_ADMIN_LBR_PROTOCOL $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf
       update_variable "<OAM_ADMIN_LBR_HOST>" $OAM_ADMIN_LBR_HOST $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf
       update_variable "<OAM_ADMIN_LBR_PORT>" $OAM_ADMIN_LBR_PORT $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf
-      update_variable "<K8_WORKER_HOST1>" ${INGRESS_HOST:=$K8_WORKER_HOST1} $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf
-      update_variable "<K8_WORKER_HOST2>" ${INGRESS_HOST:=$K8_WORKER_HOST2} $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf
       update_variable "<OHS_HOST>" $OHS_HOST1 $OHS_PATH/$OHS_HOST1/login_vh.conf
       update_variable "<OHS_PORT>" $OHS_PORT $OHS_PATH/$OHS_HOST1/login_vh.conf
       update_variable "<OAM_LOGIN_LBR_PROTOCOL>" $OAM_LOGIN_LBR_PROTOCOL $OHS_PATH/$OHS_HOST1/login_vh.conf
       update_variable "<OAM_LOGIN_LBR_HOST>" $OAM_LOGIN_LBR_HOST $OHS_PATH/$OHS_HOST1/login_vh.conf
       update_variable "<OAM_LOGIN_LBR_PORT>" $OAM_LOGIN_LBR_PORT $OHS_PATH/$OHS_HOST1/login_vh.conf
-      update_variable "<K8_WORKER_HOST1>" ${INGRESS_HOST:=$K8_WORKER_HOST1} $OHS_PATH/$OHS_HOST1/login_vh.conf
-      update_variable "<K8_WORKER_HOST2>" ${INGRESS_HOST:=$K8_WORKER_HOST2} $OHS_PATH/$OHS_HOST1/login_vh.conf
+      print_status $?
 
       if [ "$USE_INGRESS" = "true" ]
       then
-        update_variable "<OAM_ADMIN_K8>" $INGRESS_HTTP_PORT $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf
-        update_variable "<OAM_POLICY_K8>" $INGRESS_HTTP_PORT $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf
-        update_variable "<OAM_OAM_K8>" $INGRESS_HTTP_PORT $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf
-        update_variable "<OAM_OAM_K8>" $INGRESS_HTTP_PORT $OHS_PATH/$OHS_HOST1/login_vh.conf
-      else
-        update_variable "<OAM_ADMIN_K8>" $OAM_ADMIN_K8 $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf
-        update_variable "<OAM_POLICY_K8>" $OAM_POLICY_K8 $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf
-        update_variable "<OAM_OAM_K8>" $OAM_OAM_K8 $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf
-        update_variable "<OAM_OAM_K8>" $OAM_OAM_K8 $OHS_PATH/$OHS_HOST1/login_vh.conf
+        OAM_ADMIN_K8=$INGRESS_HTTP_PORT 
+        OAM_POLICY_K8=$INGRESS_HTTP_PORT 
+        OAM_OAM_K8=$INGRESS_HTTP_PORT 
       fi
+
+      NODELIST=$(kubectl get nodes --no-headers=true  | cut -f1 -d ' ')
+      create_location $TEMPLATE_DIR/locations.txt "$NODELIST" $OHS_PATH/$OHS_HOST1
+
    fi
 
    if [ ! "$OHS_HOST2" = "" ] 
    then
+       printf "\n\t\t\tCreating Virtual Host files for $OHS_HOST2 - "
        cp $OHS_PATH/$OHS_HOST1/iadadmin_vh.conf $OHS_PATH/$OHS_HOST2/iadadmin_vh.conf
        cp $OHS_PATH/$OHS_HOST1/login_vh.conf $OHS_PATH/$OHS_HOST2/login_vh.conf
        sed -i "s/$OHS_HOST1/$OHS_HOST2/" $OHS_PATH/$OHS_HOST2/login_vh.conf
@@ -772,6 +887,7 @@ create_oam_ohs_config()
   fi
 
    print_status $?
+
 
    ET=`date +%s`
    print_time STEP "Creating OHS config" $ST $ET >> $LOGDIR/timings.log
@@ -803,6 +919,7 @@ create_logstash_cm()
 
    update_variable "<OAMNS>" $OAMNS $WORKDIR/logstash_cm.yaml
    update_variable "<ELK_HOST>" $ELK_HOST $WORKDIR/logstash_cm.yaml
+   update_variable "<ELK_USER>" $ELK_USER $WORKDIR/logstash_cm.yaml
    update_variable "<ELK_USER_PWD>" $ELK_USER_PWD $WORKDIR/logstash_cm.yaml
 
    kubectl create -f $WORKDIR/logstash_cm.yaml >$LOGDIR/logstash_cm.log 2>&1
@@ -874,13 +991,17 @@ deploy_wls_monitor()
 
 enable_monitor()
 {
-   ST=`date +%s`
+   ST=$(date +%s)
    print_msg "Configuring Prometheus Operator"
 
    ENC_WEBLOGIC_USER=`encode_pwd $OAM_WEBLOGIC_USER`
    ENC_WEBLOGIC_PWD=`encode_pwd $OAM_WEBLOGIC_PWD`
    
 
+   PROM_REL=$(kubectl get prometheuses.monitoring.coreos.com --all-namespaces -o jsonpath="{.items[*].spec.serviceMonitorSelector}" | tr '"{}' ' ' | cut -f3 -d: | sed 's/ //g ')
+
+   cp $WORKDIR/samples/monitoring-service/manifests/wls-exporter-ServiceMonitor.yaml.template $WORKDIR/samples/monitoring-service/manifests/wls-exporter-ServiceMonitor.yaml
+   replace_value2 release $PROM_REL $WORKDIR/samples/monitoring-service/manifests/wls-exporter-ServiceMonitor.yaml
    replace_value2 domainName $OAM_DOMAIN_NAME $WORKDIR/samples/monitoring-service/manifests/wls-exporter-ServiceMonitor.yaml
    replace_value2 namespace $OAMNS $WORKDIR/samples/monitoring-service/manifests/wls-exporter-ServiceMonitor.yaml
    sed -i  "/namespaceSelector/,/-/{s/-.*/- $OAMNS/}" $WORKDIR/samples/monitoring-service/manifests/wls-exporter-ServiceMonitor.yaml
@@ -894,7 +1015,87 @@ enable_monitor()
    kubectl apply -f $WORKDIR/samples/monitoring-service/manifests/ > $LOGDIR/enable_monitor.log
    print_status $? $LOGDIR/enable_monitor.log
 
-   ET=`date +%s`
+   ET=$(date +%s)
    print_time STEP "Configure Prometheus Operator" $ST $ET >> $LOGDIR/timings.log
 
 }
+
+create_dr_cronjob_files()
+{
+   ST=$(date +%s)
+   print_msg "Creating Cron Job Files"
+
+   cp $TEMPLATE_DIR/dr_cron.yaml $WORKDIR/dr_cron.yaml
+   update_variable "<DRNS>" $DRNS $WORKDIR/dr_cron.yaml
+   update_variable "<DR_OAM_MINS>" $DR_OAM_MINS $WORKDIR/dr_cron.yaml
+   update_variable "<RSYNC_IMAGE>" $RSYNC_IMAGE $WORKDIR/dr_cron.yaml
+   update_variable "<RSYNC_VER>" $RSYNC_VER $WORKDIR/dr_cron.yaml
+   update_variable "<OAM_DOMAIN_NAME>" $OAM_DOMAIN_NAME $WORKDIR/dr_cron.yaml
+
+   print_status $?
+
+   ET=$(date +%s)
+   print_time STEP "Create DR Cron Job Files" $ST $ET >> $LOGDIR/timings.log
+}
+
+
+create_dr_pv()
+{
+   ST=$(date +%s)
+   print_msg "Creating DR Persistent Volume"
+
+   kubectl create -f $WORKDIR/dr_dr_pv.yaml > $LOGDIR/create_dr_pv.log 2>&1
+   print_status $? $LOGDIR/create_dr_pv.log
+
+   ET=$(date +%s)
+   print_time STEP "Create DR Persistent Volume " $ST $ET >> $LOGDIR/timings.log
+}
+
+create_dr_pvc()
+{
+   ST=$(date +%s)
+   print_msg "Creating DR Persistent Volume Claim"
+   kubectl create -f $WORKDIR/dr_dr_pvc.yaml > $LOGDIR/create_dr_pvc.log 2>&1
+   print_status $? $LOGDIR/create_dr_pvc.log
+
+   ET=$(date +%s)
+   print_time STEP "Create DR Persistent Volume Claim " $ST $ET >> $LOGDIR/timings.log
+}
+
+
+delete_oam_files()
+{
+   ST=$(date +%s)
+   print_msg "Delete OAM Domain Files"
+
+   if [ -e $OAM_LOCAL_SHARE ] && [ ! "$OAM_LOCAL_SHARE" = "" ]
+   then
+     echo rm -rf $OAM_LOCAL_SHARE/domains $OAM_LOCAL_SHARE/applications $OAM_LOCAL_SHARE/stores $OAM_LOCAL_SHARE/keystores  > $LOGDIR/delete_oam_domain.log 2>&1
+     rm -rf $OAM_LOCAL_SHARE/domains $OAM_LOCAL_SHARE/applications $OAM_LOCAL_SHARE/stores $OAM_LOCAL_SHARE/keystores >> $LOGDIR/delete_oam_domain.log 2>&1
+   else
+     echo "Share does not exist, or OAM_LOCAL_SHARE is not defined."
+   fi
+
+   print_status $?  $LOGDIR/delete_oam_domain.log
+
+   ET=$(date +%s)
+   print_time STEP "Delete OAM Domain Files" $ST $ET >> $LOGDIR/timings.log
+}
+
+create_dr_source_pv()
+{
+   ST=$(date +%s)
+   print_msg "Creating OAM Persistent Volume"
+
+   cp $TEMPLATE_DIR/dr_oampv.yaml $WORKDIR/dr_oampv.yaml
+   update_variable "<OAM_DOMAIN_NAME>" $OAM_DOMAIN_NAME $WORKDIR/dr_oampv.yaml
+   update_variable "<PVSERVER>" $DR_STANDBY_PVSERVER $WORKDIR/dr_oampv.yaml
+   update_variable "<OAM_SHARE>" $OAM_STANDBY_SHARE $WORKDIR/dr_oampv.yaml
+
+   kubectl create -f $WORKDIR/dr_oampv.yaml > $LOGDIR/dr_oampv.log 2>&1
+   print_status $? $LOGDIR/dr_oampv.log
+
+   ET=$(date +%s)
+   print_time STEP "Create OAM Persistent Volume" $ST $ET >> $LOGDIR/timings.log
+}
+

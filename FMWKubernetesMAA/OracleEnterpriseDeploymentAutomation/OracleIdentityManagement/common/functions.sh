@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # This is an example of common functions and procedures used by the provisioning and deletion scripts
@@ -161,6 +161,18 @@ check_oper_exists()
    fi
 }
 
+check_oper_running()
+{
+   print_msg "Check Operator is Running"
+   kubectl get pods -ALL | grep operator | head -1 > /dev/null 2>&1
+   if [ $? = 0 ]
+   then
+       echo "Success"
+   else
+       echo "Failed Start WebLogic Kubernetes Operator before continuing."
+       exit 1
+   fi
+}
 # Helm Functions
 #
 install_operator()
@@ -169,39 +181,57 @@ install_operator()
     
     print_msg  "Installing Operator"
 
-    ELK_PROTO=`echo $ELK_HOST | cut -f1 -d:` 
-    ELK_HN=`echo $ELK_HOST | cut -f2 -d: | sed 's/\/\///'` 
-    ELK_PORT=`echo $ELK_HOST | cut -f3 -d:` 
-
     cd $WORKDIR/samples
-    echo helm install weblogic-kubernetes-operator charts/weblogic-operator --namespace $OPERNS --set image=$OPER_IMAGE:$OPER_VER --set serviceAccount=$OPER_ACT \
-            --set "enableClusterRoleBinding=true" \
-            --set "javaLoggingLevel=FINE" \
-            --set "domainNamespaceSelectionStrategy=LabelSelector" \
-            --set "domainNamespaceLabelSelector=weblogic-operator\=enabled" \
-            --set "elkIntegrationEnabled=$USE_ELK" \
-            --set "elasticSearchHost=$ELK_PROTO://$ELK_HN" \
-            --set "elasticSearchPort=$ELK_PORT" \
-            --set "logStashImage=docker.elastic.co/logstash/logstash:$ELK_VER" \
-            --set "createLogStashConfigMap=true" \
-            --wait > $LOGDIR/install_oper.log 
+    CMD="helm install weblogic-kubernetes-operator charts/weblogic-operator --namespace $OPERNS --set image=$OPER_IMAGE:$OPER_VER --set serviceAccount=$OPER_ACT "
+    CMD="$CMD --set \"enableClusterRoleBinding=true\" --set \"javaLoggingLevel=FINE\" --set \"domainNamespaceSelectionStrategy=LabelSelector\" --set \"domainNamespaceLabelSelector=weblogic-operator\=enabled\" "
+    if [ "$OPER_ENABLE_SECRET" = "true" ]
+    then
+        CMD="$CMD --set \"imagePullSecrets[0].name=regcred\" "
+    fi
+    if [ "$USE_ELK" = "true" ]
+    then
+       ELK_PROTO=$(echo $ELK_HOST | cut -f1 -d:)
+       ELK_HN=$(echo $ELK_HOST | cut -f3 -d/ | cut -f1 -d:)
+       ELK_PORT=$(echo $ELK_HOST | cut -f3 -d:)
+       ELK_IMAGE=${ELK_REPO:=docker.elastic.co}/logstash/logstash:$ELK_VER
 
-    helm install weblogic-kubernetes-operator charts/weblogic-operator --namespace $OPERNS --set image=$OPER_IMAGE:$OPER_VER --set serviceAccount=$OPER_ACT \
-            --set "enableClusterRoleBinding=true" \
-            --set "javaLoggingLevel=FINE" \
-            --set "domainNamespaceSelectionStrategy=LabelSelector" \
-            --set "domainNamespaceLabelSelector=weblogic-operator\=enabled" \
-            --set "elkIntegrationEnabled=$USE_ELK" \
-            --set "elasticSearchHost=$ELK_PROTO://$ELK_HN" \
-            --set "elasticSearchPort=$ELK_PORT" \
-            --set "logStashImage=docker.elastic.co/logstash/logstash:$ELK_VER" \
-            --set "createLogStashConfigMap=true" \
-            --wait >> $LOGDIR/install_oper.log 2>&1
+       ELK_OPTIONS="--set \"elkIntegrationEnabled=$USE_ELK\""
+       ELK_OPTIONS="$ELK_OPTIONS --set \"elasticSearchProtocol=$ELK_PROTO\""
+       ELK_OPTIONS="$ELK_OPTIONS --set \"elasticSearchHost=$ELK_HN\""
+       ELK_OPTIONS="$ELK_OPTIONS --set \"elasticSearchPort=$ELK_PORT\""
+       ELK_OPTIONS="$ELK_OPTIONS --set \"logStashImage=$ELK_IMAGE\""
+       ELK_OPTIONS="$ELK_OPTIONS --set \"imagePullSecrets[0].name=regcred\""
 
+       CMD="$CMD $ELK_OPTIONS"
+    fi
+
+    CMD="$CMD --wait"
+
+    echo CMD: $CMD > $LOGDIR/install_oper.log
+
+    eval $CMD >> $LOGDIR/install_oper.log 2>&1
     print_status $? $LOGDIR/install_oper.log
     ET=$(date +%s)
     print_time STEP "Install Operator" $ST $ET >> $LOGDIR/timings.log
 
+}
+
+restart_operator()
+{
+    ST=$(date +%s)
+    
+    print_msg  "Restarting Operator"
+    echo
+    for pod in $( kubectl get pod -n $OPERNS | awk ' { print $1 }' | sed '/NAME/d')
+    do
+      printf "\t\t\tRestarting $pod - "
+      kubectl delete pod -n $OPERNS $pod >> $LOGDIR/restart_oper.log 2>&1
+      print_status $?
+    done
+ 
+
+    ET=$(date +%s)
+    print_time STEP "Restart Operator" $ST $ET >> $LOGDIR/timings.log
 }
 
 # Kubernetes Functions
@@ -245,6 +275,21 @@ delete_crd()
     fi
 }
 
+#
+# Get Kubernetes Version
+#
+get_k8_ver()
+{
+  kubectl version --short >/dev/null 2>&1
+  if [ $? -eq 0 ]
+  then
+     KVER=$(kubectl version --short=true 2>/dev/null | grep Server | cut -f2 -d: | cut -f1 -d + | sed 's/ v//' | cut -f 1-3 -d.)
+  else
+     KVER=$(kubectl version 2>/dev/null | grep Server | cut -f2 -d: | cut -f1 -d + | sed 's/ v//' | cut -f 1-3 -d.)
+  fi
+
+  echo $KVER
+}
 #
 # Get Kubernetes NodePort Port
 #
@@ -333,7 +378,7 @@ copy_to_k8()
    namespace=$3
    domain_name=$4
 
-   kubectl cp $filename  $namespace/$domain_name-adminserver:$PV_MOUNT/$destination
+   kubectl -c weblogic-server cp $filename $namespace/$domain_name-adminserver:$PV_MOUNT/$destination 
    if  [  $? -gt 0 ]
    then
       echo "Failed to copy $filename."
@@ -408,6 +453,28 @@ create_domain_secret()
    print_time STEP "Create Domain Secret" $ST $ET >> $LOGDIR/timings.log
 }
 
+create_domain_secret_wdt()
+{
+   namespace=$1
+   domain_name=$2
+   wlsuser=$3
+   wlspwd=$4
+
+   ST=$(date +%s)
+   print_msg "Creating a Kubernetes Domain Secret"
+   if [ "$domain_name" = "$OIG_DOMAIN_NAME" ]
+   then
+      cd $WORKDIR/samples/create-oim-domain/domain-home-on-pv/wdt-utils
+   else
+      cd $WORKDIR/samples/create-access-domain/domain-home-on-pv/wdt-utils
+   fi
+   ./create-secret.sh -l "username=$wlsuser" -l "password=$wlspwd" -n $namespace -d $domain_name -s $domain_name-weblogic-credentials > $LOGDIR/domain_secret.log  2>&1
+
+   print_status $? $LOGDIR/domain_secret.log
+   ET=$(date +%s)
+
+   print_time STEP "Create Domain Secret" $ST $ET >> $LOGDIR/timings.log
+}
 create_rcu_secret()
 {
    namespace=$1
@@ -427,6 +494,32 @@ create_rcu_secret()
    print_time STEP "Create RCU Secret" $ST $ET >> $LOGDIR/timings.log
 }
 
+create_rcu_secret_wdt()
+{
+   namespace=$1
+   domain_name=$2
+   rcuprefix=$3
+   rcupwd=$4
+   syspwd=$5
+   dbhost=$6
+   dbport=$7
+   dbservice=$8
+
+   ST=$(date +%s)
+   print_msg "Creating a Kubernetes RCU Secret"
+   if [ "$domain_name" = "$OIG_DOMAIN_NAME" ]
+   then
+      cd $WORKDIR/samples/create-oim-domain/domain-home-on-pv/wdt-utils
+   else
+      cd $WORKDIR/samples/create-access-domain/domain-home-on-pv/wdt-utils
+   fi
+   ./create-secret.sh -l "rcu_prefix=$rcuprefix" -l "rcu_schema_password=$rcupwd" -l "db_host=$dbhost" -l "db_port=$dbport" -l "db_service=$dbservice" -l "dba_user=sys" -l "dba_password=$syspwd" -n $namespace -d $domain_name -s $domain_name-rcu-credentials > $LOGDIR/rcu_secret.log  2>&1
+
+   print_status $? $LOGDIR/rcu_secret.log
+   ET=$(date +%s)
+
+   print_time STEP "Create RCU Secret" $ST $ET >> $LOGDIR/timings.log
+}
 # Create a working directory inside the Kubernetes container
 #
 create_workdir()
@@ -436,11 +529,11 @@ create_workdir()
   
    ST=$(date +%s)
    print_msg "Creating Work directory inside container"
-   kubectl exec -n $namespace -ti $domain_name-adminserver -- mkdir -p $K8_WORKDIR
+   kubectl exec -n $namespace -ti $domain_name-adminserver -c weblogic-server -- mkdir -p $K8_WORKDIR
    print_status $? 
 
    printf "\t\t\tCreating Keystores directory inside container - "
-   kubectl exec -n $namespace -ti $domain_name-adminserver -- mkdir -p $PV_MOUNT/keystores
+   kubectl exec -n $namespace -ti $domain_name-adminserver -c weblogic-server -- mkdir -p $PV_MOUNT/keystores
    print_status $? 
    ET=$(date +%s)
 
@@ -455,7 +548,7 @@ run_command_k8()
    domain_name=$2
    command=$3
   
-   kubectl exec -n $namespace -ti $domain_name-adminserver -- $command
+   kubectl exec -n $namespace -ti $domain_name-adminserver -c weblogic-server -- $command
 }
 
 # Execute a command inside the Kubernetes container
@@ -467,7 +560,7 @@ run_wlst_command()
    command=$3
   
    WLSRETCODE=0
-   kubectl exec -n $namespace -ti $domain_name-adminserver -- /u01/oracle/oracle_common/common/bin/wlst.sh $command 
+   kubectl exec -n $namespace -ti $domain_name-adminserver -c weblogic-server -- /u01/oracle/oracle_common/common/bin/wlst.sh $command 
    if [ $? -gt 0 ]
    then 
       echo "Failed to Execute wlst command: $command"
@@ -500,6 +593,7 @@ download_samples()
     print_time STEP "Download IDM Samples" $ST $ET >> $LOGDIR/timings.log
 }
 
+
 # Copy Samples to Working Directory
 #
 copy_samples()
@@ -526,6 +620,40 @@ copy_samples()
    
 }
 
+# Download MAA Samples to Directory
+#
+download_maa_samples()
+{
+    ST=$(date +%s)
+    print_msg "Downloading Oracle MAA Samples "
+    cd $LOCAL_WORKDIR
+
+    if [ -d maa ]
+    then
+        echo "Already Exists - Skipping"
+    else
+        git clone -q $MAA_SAMPLES_REP > $LOCAL_WORKDIR/maa_sample_download.log 2>&1
+        print_status $? $LOCAL_WORKDIR/maa_sample_download.log
+        chmod 700 $LOCAL_WORKDIR/maa/kubernetes-maa/*.sh >> $LOCAL_WORKDIR/maa_sample_download.log 2>&1
+    fi
+    ET=$(date +%s)
+
+    print_time STEP "Download MAA Samples" $ST $ET >> $LOGDIR/timings.log
+}
+
+# Generate the files required to Build the Domain Creation Image
+#
+generate_wdt_model_files()
+{
+     print_msg "Generating WDT Model Files"
+
+     cd $WORKDIR/samples/create-*-domain/domain-home-on-pv/wdt-utils/generate_models_utils
+     ./generate_wdt_models.sh -i $WORKDIR/create-domain-wdt.yaml -o $WORKDIR >$LOGDIR/generate_wdt_models.log 2>&1
+     print_status $? $LOGDIR/generate_wdt_models.log
+     ET=`date +%s`
+     print_time STEP "Generate WDT Model Files" $ST $ET >> $LOGDIR/timings.log
+}
+
 # Create helper pod
 #
 create_helper_pod ()
@@ -539,7 +667,7 @@ create_helper_pod ()
    if [ "$?" = "0" ]
    then
        echo "Already Created"
-       check_running $NS helper
+       check_running $NS helper 5
    else
        if [ "$USE_REGISTRY" = "true" ]
        then
@@ -549,7 +677,7 @@ create_helper_pod ()
            kubectl run helper  --image $IMAGE -n $NS -- sleep infinity > $LOGDIR/helper.log 2>&1
            print_status $? $LOGDIR/helper.log
        fi
-       check_running $NS helper
+       check_running $NS helper 20
    fi
    ET=$(date +%s)
    print_time STEP "Create Helper Pod" $ST $ET >> $LOGDIR/timings.log
@@ -560,7 +688,7 @@ create_helper_pod ()
 remove_helper_pod()
 {
    NS=$1
-   kubectl -n $NS delete pod,svc helper
+   kubectl -n $NS delete pod helper --force  2> /dev/null
    echo "Helper Pod Deleted:"
 }
 
@@ -634,6 +762,8 @@ scale_cluster()
         echo Error
         ;;
    esac
+
+   sleep 60
 
    if [ $REPLICAS = $CURRENT ]
    then
@@ -1084,15 +1214,25 @@ check_running()
     NAMESPACE=$1
     SERVER_NAME=$2
     DELAY=$3
-    
-    printf "\t\t\tChecking $SERVER_NAME "
+    STEP=$4
+    if ! [[ $DELAY =~ ^[0-9]+$ ]]
+    then
+      STEP=$DELAY
+      unset DELAY
+    fi
+    if [ "$STEP" = "true" ]
+    then
+       print_msg "Checking $SERVER_NAME"
+    else
+       printf "\t\t\tChecking $SERVER_NAME "
+    fi
+
     if [ "$SERVER_NAME" = "adminserver" ]
     then
         sleep ${DELAY:=120}
     else 
         sleep ${DELAY:=120}
     fi
-
     X=0
     RETRIES=1
     MAX_RETRIES=50
@@ -1133,20 +1273,13 @@ check_running()
               exit 1
            elif [ "$PODSTATUS" = "CrashLoopBackOff" ] || [ "$PODSTATUS" = "Pending" ] || [ "$PODSTATUS" = "Init:CrashLoopBackOff" ] || [ "$PODSTATUS" = "Init:Pending" ]
            then
-              echo "Pod $SERVER_NAME has failed to Start - Check Image is present on $NODE."
+              echo $POD > $LOGDIR/check_running_$SERVER_NAME.log 2>&1
+              POD_NAME=$(echo $POD | cut -f1 -d ' ')
+              kubectl describe pod -n  $NAMESPACE $POD_NAME >> $LOGDIR/check_running_$SERVER_NAME.log 2>&1
+              kubectl logs -n  $NAMESPACE $POD_NAME >> $LOGDIR/check_running_$SERVER_NAME.log 2>&1
+              echo "Pod $SERVER_NAME has failed to Start - Pod Status: $PODSTATUS - Check Logfile: $LOGDIR/check_running_$SERVER_NAME.log"
               exit 1
            fi
-
-           if [ "$SERVER_NAME" = "oim-server1" ]
-           then
-              kubectl logs -n $OIGNS ${OIG_DOMAIN_NAME}-oim-server1 | grep -q "BootStrap configuration Failed"
-              if [ $? = 0 ]
-              then
-                 echo "BootStrap configuration Failed - check kubectl logs -n $OIGNS ${OIG_DOMAIN_NAME}-oim-server1"
-                 exit 1
-              fi
-           fi
-
 
            if [ ! "$RUNNING" = "0" ] 
            then
@@ -1170,6 +1303,71 @@ check_running()
     fi
 }
 
+# Check introspector
+#
+check_introspector()
+{
+    NAMESPACE=$1
+    
+    ST=$(date +%s)
+    print_msg "Waiting for Introspector to complete"
+     
+    POD_RUNNING=true
+    while [ "$POD_RUNNING" = "true" ]
+    do
+       POD=$(kubectl -n $NAMESPACE get pods -o wide --no-headers=true --ignore-not-found | grep introspect | head -1 )
+
+       if [ "$POD" = "" ]
+       then
+         POD_RUNNING=false
+       else
+         PODSTATUS=$(echo $POD | awk '{ print $3 }')
+         if [ "$PODSTATUS" = "CrashLoopBackOff" ] || [ "$PODSTATUS" = "Pending" ] || [ "$PODSTATUS" = "Init:CrashLoopBackOff" ] || [ "$PODSTATUS" = "Init:Pending" ]
+         then
+           echo $POD > $LOGDIR/check_introspector.log 2>&1
+           POD_NAME=$(echo $POD | cut -f1 -d ' ')
+           kubectl describe pod -n  $NAMESPACE $POD_NAME >> $LOGDIR/check_introspector.log 2>&1
+           kubectl logs -n  $NAMESPACE $POD_NAME >> $LOGDIR/check_introspector.log 2>&1
+           echo "Pod introspector has failed - Pod Status: $PODSTATUS - Check Logfile: $LOGDIR/check_introspector.log"
+           exit 1
+         fi
+      fi
+      echo -e ".\c"
+      sleep 60
+    done
+
+    if [ "$POD_RUNNING" = "false" ]
+    then
+       echo " Completed."
+    fi
+    ET=`date +%s`
+    print_time STEP "Waiting for Introspector" $ST $ET >> $LOGDIR/timings.log
+}
+
+# Check domain created successfully
+#
+check_domain_ok()
+{
+    NAMESPACE=$1
+    DOMAIN_NAME=$2
+    
+    ST=$(date +%s)
+    print_msg "Check Domain created without error"
+     
+    kubectl describe domain -n $NAMESPACE $DOMAIN_NAME  > $LOGDIR/domain_status.log
+    grep -q SEVERE $LOGDIR/domain_status.log
+    if [ $? -eq 0 ]
+    then
+       echo "Failed - Check Logfile: $LOGDIR/domain_status.log"
+       exit 1
+    else
+       echo "Success"
+    fi
+
+    ET=`date +%s`
+    print_time STEP "Check Domain Created without Error" $ST $ET >> $LOGDIR/timings.log
+}
+
 # Check whether a Kubernetes pod has shutdown
 #
 check_stopped()
@@ -1185,7 +1383,7 @@ check_stopped()
     while [ $X  -lt $RETRIES ]
     do
     
-        POD=$(kubectl --namespace $NAMESPACE get pod | grep $SERVER_NAME)
+        POD=$(kubectl --ignore-not-found=true --namespace $NAMESPACE get pod | grep $SERVER_NAME)
         PODSTATUS=$(echo $POD | awk '{ print $3 }')
         RUNNING=$(echo $POD | awk '{ print $2 }')
         if [ "$POD" = "" ]
@@ -1288,7 +1486,7 @@ print_msg()
    msg=$1
    if [ "$STEPNO" = "" ]
    then
-       printf "$msg"
+       printf "$msg - "
    else
        printf "Executing Step $STEPNO:\t$msg - " 
    fi
@@ -1326,6 +1524,7 @@ get_lbr_certificate()
 
      print_msg "Obtaining Load Balancer Certificate $LBRHOST:$LBRPORT"
      ST=$(date +%s)
+
      openssl s_client -connect ${LBRHOST}:${LBRPORT} -showcerts </dev/null 2>/dev/null|openssl x509 -outform PEM > $WORKDIR/${LBRHOST}.pem 2>$LOGDIR/lbr_cert.log
      print_status $? $LOGDIR/lbr_cert.log
 
@@ -1431,6 +1630,26 @@ function check_lbr()
     fi
 }
 
+# Create secret with ELK Password
+#
+create_elk_secret()
+{
+   namespace=$1
+   ST=$(date +%s)
+   print_msg "Creating Secret for Elastic Search"
+
+   if [ ! "$ELK_API" = "" ]
+   then
+      kubectl create secret generic elasticsearch-pw-elastic -n $namespace --from-literal password=$ELK_API > $LOGDIR/elk_secret.log 2>&1
+   else
+      kubectl create secret generic elasticsearch-pw-elastic -n $namespace --from-literal password=$ELK_USER_PWD > $LOGDIR/elk_secret.log 2>&1
+   fi
+   print_status $? $LOGDIR/update_kibana_host.log
+
+   ET=$(date +%s)
+   print_time STEP "Update logstash host" $ST $ET >> $LOGDIR/timings.log
+}
+
 # Change Kibana ELK Host
 #
 update_kibana_host()
@@ -1467,11 +1686,32 @@ create_cert_cm()
       exit 1
    fi
 
-   kubectl create configmap elk-cert --from-file=$certfile -n $namespace > $LOGDIR/logstash_cert.log 2>&1
+   kubectl create configmap logstash-certs-secret --from-file=$certfile -n $namespace > $LOGDIR/logstash_cert.log 2>&1
    print_status $? $LOGDIR/logstash_cert.log
 
    ET=$(date +%s)
    print_time STEP "Creating Logstash Certificate Configmap" $ST $ET >> $LOGDIR/timings.log
+}
+
+create_cert_secret()
+{
+   namespace=$1
+
+   ST=$(date +%s)
+   print_msg "Creating Logstash Certificate secret"
+   certfile=$LOCAL_WORKDIR/ELK/ca.crt
+
+   if [ ! -f $certfile ]
+   then 
+      echo "Certificate File does not exist."
+      exit 1
+   fi
+
+   kubectl create secret generic logstash-certs-secret --from-file=$certfile -n $namespace > $LOGDIR/logstash_cert.log 2>&1
+   print_status $? $LOGDIR/logstash_cert.log
+
+   ET=$(date +%s)
+   print_time STEP "Creating Logstash Certificate secret" $ST $ET >> $LOGDIR/timings.log
 }
 
 # Create Logstash Pod
@@ -1508,6 +1748,12 @@ create_logstash()
 
    update_variable "<NAMESPACE>" $namespace $WORKDIR/logstash.yaml
    update_variable "<ELK_VER>" $ELK_VER $WORKDIR/logstash.yaml
+  
+   if [ ! "$ELK_REPO" = "" ]
+   then
+      replace_value2 image $ELK_REPO/logstash/logstash:$ELK_VER  $WORKDIR/logstash.yaml
+      sed -i "s/dockercred/regcred/" $WORKDIR/logstash.yaml
+   fi
  
    kubectl create -f $WORKDIR/logstash.yaml > $LOGDIR/logstash.log 2>&1
    print_status $? $LOGDIR/logstash.log
@@ -1534,10 +1780,15 @@ install_elk_operator()
 
    printf "\t\t\tInstall Operator - "
 
-   helm install elastic-operator elastic/eck-operator -n $ELKNS --create-namespace >> $LOGDIR/operator.log 2>&1
+   if [ "$ELK_REPO" = "" ]
+   then
+      helm install elastic-operator elastic/eck-operator -n $ELKNS --set image.tag=$ELK_OPER_VER >> $LOGDIR/operator.log 2>&1
+   else
+      helm install elastic-operator elastic/eck-operator -n $ELKNS  --set image.repository=$ELK_REPO/eck/eck-operator --set image.tag=$ELK_OPER_VER --set imagePullSecrets[0].name=regcred>> $LOGDIR/operator.log 2>&1
+   fi 
    print_status $? $LOGDIR/operator.log
   
-   check_running $ELKNS elastic-operator
+   check_running $ELKNS elastic-operator 30
 
    ET=$(date +%s)
    print_time STEP "Deploy Elastic Search Operator" $ST $ET >> $LOGDIR/timings.log
@@ -1557,6 +1808,14 @@ deploy_elk()
    update_variable "<ELKNS>" $ELKNS $filename
    update_variable "<ELK_VER>" $ELK_VER $filename
    update_variable "<ELK_STORAGE>" $ELK_STORAGE $filename
+   if [ ! "$ELK_REPO" = "" ]
+   then
+     sed -i "/^  version/i\  image: $ELK_REPO/elasticsearch/elasticsearch:$ELK_VER\n" $filename
+     echo "    podTemplate:" >> $filename
+     echo "      spec:"  >> $filename
+     echo "        imagePullSecrets:" >> $filename
+     echo "        - name: regcred" >> $filename
+   fi
 
    kubectl create -f $filename > $LOGDIR/elk.log 2>&1
    print_status $? $LOGDIR/elk.log
@@ -1576,6 +1835,14 @@ deploy_kibana()
 
    update_variable "<ELKNS>" $ELKNS $filename
    update_variable "<ELK_VER>" $ELK_VER $filename
+   if [ ! "$ELK_REPO" = "" ]
+   then
+     sed -i "/^  version/i\  image: $ELK_REPO/kibana/kibana:$ELK_VER\n" $filename
+     echo "  podTemplate:" >> $filename
+     echo "    spec:"  >> $filename
+     echo "      imagePullSecrets:" >> $filename
+     echo "      - name: regcred" >> $filename
+   fi
 
    kubectl create -f $filename > $LOGDIR/kibana.log 2>&1
    print_status $? $LOGDIR/kibana.log
@@ -1656,6 +1923,8 @@ create_elk_role()
    print_msg "Creating Elastic Search Role"
    ST=$(date +%s)
 
+   sleep 30
+
    ROLE_NAME=logstash_writer
 
    ADMINURL=https://$K8_WORKER_HOST1:$ELK_K8
@@ -1666,8 +1935,8 @@ create_elk_role()
 
    PUT_CURL_COMMAND="curl --location -k --request  PUT "
    CONTENT_TYPE="-H 'Content-Type: application/json' -H 'Authorization: Basic $USER'"
-   PAYLOAD="-d '{\"cluster\": [\"manage_index_templates\", \"monitor\", \"manage_ilm\"],\"indices\": [ {\"names\": [ \"logs*\" ],"
-   PAYLOAD=$PAYLOAD"\"privileges\": [\"write\",\"create\",\"create_index\",\"manage\",\"manage_ilm\"] } "
+   PAYLOAD="-d '{\"cluster\": [\"manage_index_templates\", \"monitor\", \"manage_ilm\"],\"indices\": [ {\"names\": [ \"logs*\",\"oam*\",\"oud*\",\"oig*\",\"oiri*\",\"oaa*\",\"wko*\",\"oudsm*\" ],"
+   PAYLOAD=$PAYLOAD"\"privileges\": [\"write\",\"create\",\"create_index\",\"manage\",\"manage_ilm\",\"auto_configure\"] } "
    PAYLOAD=$PAYLOAD" ] }'"
 
    echo "$PUT_CURL_COMMAND $REST_API $CONTENT_TYPE $PAYLOAD" > $LOGDIR/elk_role.log 2>&1
@@ -1704,6 +1973,97 @@ create_elk_user()
 
    ET=$(date +%s)
    print_time STEP "Create Elastic Search User" $ST $ET >> $LOGDIR/timings.log
+}
+
+create_elk_dataview()
+{
+
+   viewtype=$1
+   print_msg "Creating Elastic Search Dataview for $viewtype"
+   ST=$(date +%s)
+
+   ADMINURL=https://$K8_WORKER_HOST1:$ELK_KIBANA_K8
+
+   REST_API="'$ADMINURL/api/data_views/data_view'"
+
+   USER=`encode_pwd elastic:${ELK_PWD}`
+
+   PUT_CURL_COMMAND="curl --location -k --request  POST "
+   CONTENT_TYPE="-H 'Content-Type: application/json' -H 'Authorization: Basic $USER' -H 'kbn-xsrf: true'"
+   PAYLOAD="-d '{\"data_view\": { \"title\" : \"${viewtype}*\",\"name\": \"${viewtype}_logs\"} }'"
+
+   echo "$PUT_CURL_COMMAND $REST_API $CONTENT_TYPE $PAYLOAD" > $LOGDIR/elk_dataview.log 2>&1
+   eval "$PUT_CURL_COMMAND $REST_API $CONTENT_TYPE $PAYLOAD" >> $LOGDIR/elk_dataview.log 2>&1
+   grep -q "\"id\""  $LOGDIR/elk_dataview.log
+   if [ $? -eq 0 ]
+   then
+      echo "Success"
+   else
+      grep -q "Duplicate data" $LOGDIR/elk_dataview.log
+      if [ $? -eq 0 ]
+      then
+         echo "Already Exists."
+      else
+         echo "Failed - see logfile $LOGDIR/elk_dataview.log"
+         exit 1
+      fi
+   fi
+
+   ET=$(date +%s)
+   print_time STEP "Create Elastic Search Dataview" $ST $ET >> $LOGDIR/timings.log
+}
+
+download_oper_cm()
+{
+
+   print_msg "Downloading Operator configmap"
+   ST=$(date +%s)
+
+   kubectl get cm -n $OPERNS weblogic-operator-logstash-cm -o yaml > $WORKDIR/logstash_cm.yaml 2>&1
+   print_status $? $WORKDIR/logstash_cm.yaml
+   ET=$(date +%s)
+   print_time STEP "Download operator configmap" $ST $ET >> $LOGDIR/timings.log
+}
+
+update_oper_cm()
+{
+
+   print_msg "Changing Operator configmap"
+   ST=$(date +%s)
+
+   filename=$WORKDIR/logstash_cm.yaml
+
+   sed -i "s/#ssl/ssl/" $filename
+   sed -i "s/#user/user/" $filename
+   sed -i "s/#cacert/cacert/" $filename
+   sed -i "/cacert.*/a\        index => \"wkologs-000001\"" $filename
+   sed -i "s/#password/password/" $filename
+   update_variable "<username>" $ELK_USER $filename
+   if [ "$ELK_API" = "" ]
+   then
+      update_variable "<password>" $ELK_USER_PWD $filename
+   else
+      update_variable "<password>" $ELK_API $filename
+   fi
+
+   print_status $? $WORKDIR/logstash_cm.yaml
+   ET=$(date +%s)
+   print_time STEP "Change operator configmap" $ST $ET >> $LOGDIR/timings.log
+}
+
+load_oper_cm()
+{
+
+   print_msg "Updating Operator configmap"
+   ST=$(date +%s)
+
+   filename=$WORKDIR/logstash_cm.yaml
+   kubectl apply -f $WORKDIR/logstash_cm.yaml > $LOGDIR/load_cm.log 2>&1
+
+   print_status $? $WORKDIR/load_cm.log
+
+   ET=$(date +%s)
+   print_time STEP "Update operator configmap" $ST $ET >> $LOGDIR/timings.log
 }
 
 check_ingress()
@@ -1827,4 +2187,500 @@ check_ldapsearch()
    which ldapsearch > /dev/null 2>&1
    return $?
 
+}
+
+# Suspend DR cronjob
+#
+suspend_cronjob()
+{
+   NAMESPACE=$1
+   JOBNAME=$2
+
+   ST=$(date +%s)
+   print_msg "Suspending DR Cron Job"
+   kubectl patch cronjobs $JOBNAME -p '{"spec" : {"suspend" : true }}' -n $NAMESPACE > $LOGDIR/suspend_cron.log 2>&1
+
+   print_status $? $LOGDIR/suspend_cron.log
+
+   ET=$(date +%s)
+   print_time STEP "Suspend Cron Job" $ST $ET >> $LOGDIR/timings.log
+}
+
+# Restart DR Cronjob
+#
+resume_cronjob()
+{
+   NAMESPACE=$1
+   JOBNAME=$2
+
+   ST=$(date +%s)
+   print_msg "Resuming DR Cron Job"
+   kubectl patch cronjobs $JOBNAME -p '{"spec" : {"suspend" : false }}' -n $NAMESPACE > $LOGDIR/resume_cron.log 2>&1
+
+   print_status $? resume_cron.log
+
+   ET=$(date +%s)
+}
+
+# If creating a backup job create persistent volumes pointing to the file systems on both the primary and standby sites.
+#
+create_dr_pvs()
+{
+   PRODUCT=$1
+
+   PRIMARY_SHARE_VAR=${PRODUCT}_PRIMARY_SHARE
+   STANDBY_SHARE_VAR=${PRODUCT}_STANDBY_SHARE
+   ST=$(date +%s)
+
+
+   print_msg "Creating DR Persistent Volume Files"
+   cp $TEMPLATE_DIR/dr_pv.yaml $WORKDIR/dr_primary_pv.yaml
+   cp $TEMPLATE_DIR/dr_pv.yaml $WORKDIR/dr_dr_pv.yaml
+   if [ "$DR_TYPE" = "PRIMARY" ]
+   then
+      update_variable "<PVSERVER>" $DR_PRIMARY_PVSERVER $WORKDIR/dr_primary_pv.yaml
+      update_variable "<PVSERVER>" $DR_STANDBY_PVSERVER $WORKDIR/dr_dr_pv.yaml
+      if [ ! "$PRODUCT" = "OAA" ]
+      then
+        update_variable "<${PRODUCT}_SHARE_PATH>" ${!PRIMARY_SHARE_VAR} $WORKDIR/dr_primary_pv.yaml
+        update_variable "<${PRODUCT}_SHARE_PATH>" ${!STANDBY_SHARE_VAR} $WORKDIR/dr_dr_pv.yaml
+      else
+        update_variable "<CONFIG_SHARE_PATH>" $OAA_PRIMARY_CONFIG_SHARE $WORKDIR/dr_primary_pv.yaml
+        update_variable "<CONFIG_SHARE_PATH>" $OAA_STANDBY_CONFIG_SHARE $WORKDIR/dr_dr_pv.yaml
+        update_variable "<VAULT_SHARE_PATH>" $OAA_PRIMARY_VAULT_SHARE $WORKDIR/dr_primary_pv.yaml
+        update_variable "<VAULT_SHARE_PATH>" $OAA_STANDBY_VAULT_SHARE $WORKDIR/dr_dr_pv.yaml
+        update_variable "<CRED_SHARE_PATH>" $OAA_PRIMARY_CRED_SHARE $WORKDIR/dr_primary_pv.yaml
+        update_variable "<CRED_SHARE_PATH>" $OAA_STANDBY_CRED_SHARE $WORKDIR/dr_dr_pv.yaml
+        update_variable "<LOG_SHARE_PATH>" $OAA_PRIMARY_LOG_SHARE $WORKDIR/dr_primary_pv.yaml
+        update_variable "<LOG_SHARE_PATH>" $OAA_STANDBY_LOG_SHARE $WORKDIR/dr_dr_pv.yaml
+      fi
+
+      if [ "$PRODUCT" = "OIRI" ]
+      then
+        update_variable "<DING_SHARE_PATH>" ${OIRI_DING_PRIMARY_SHARE} $WORKDIR/dr_primary_pv.yaml
+        update_variable "<WORK_SHARE_PATH>" ${OIRI_WORK_PRIMARY_SHARE} $WORKDIR/dr_primary_pv.yaml
+        update_variable "<DING_SHARE_PATH>" ${OIRI_DING_STANDBY_SHARE} $WORKDIR/dr_dr_pv.yaml
+        update_variable "<WORK_SHARE_PATH>" ${OIRI_WORK_STANDBY_SHARE} $WORKDIR/dr_dr_pv.yaml
+        update_variable "<PVSERVER>" $DR_STANDBY_PVSERVER $WORKDIR/dr_dr_pv.yaml
+      fi
+   else
+      update_variable "<PVSERVER>" $DR_PRIMARY_PVSERVER $WORKDIR/dr_dr_pv.yaml
+      update_variable "<PVSERVER>" $DR_STANDBY_PVSERVER $WORKDIR/dr_primary_pv.yaml
+
+      if [ ! "$PRODUCT" = "OAA" ]
+      then
+        update_variable "<${PRODUCT}_SHARE_PATH>" ${!STANDBY_SHARE_VAR} $WORKDIR/dr_primary_pv.yaml
+        update_variable "<${PRODUCT}_SHARE_PATH>" ${!PRIMARY_SHARE_VAR} $WORKDIR/dr_dr_pv.yaml
+      else
+        update_variable "<CONFIG_SHARE_PATH>" $OAA_STANDBY_CONFIG_SHARE $WORKDIR/dr_primary_pv.yaml
+        update_variable "<CONFIG_SHARE_PATH>" $OAA_PRIMARY_CONFIG_SHARE $WORKDIR/dr_dr_pv.yaml
+        update_variable "<VAULT_SHARE_PATH>" $OAA_STANDBY_VAULT_SHARE $WORKDIR/dr_primary_pv.yaml
+        update_variable "<VAULT_SHARE_PATH>" $OAA_PRIMARY_VAULT_SHARE $WORKDIR/dr_dr_pv.yaml
+        update_variable "<CRED_SHARE_PATH>" $OAA_STANDBY_CRED_SHARE $WORKDIR/dr_primary_pv.yaml
+        update_variable "<CRED_SHARE_PATH>" $OAA_PRIMARY_CRED_SHARE $WORKDIR/dr_dr_pv.yaml
+        update_variable "<LOG_SHARE_PATH>" $OAA_STANDBY_LOG_SHARE $WORKDIR/dr_primary_pv.yaml
+        update_variable "<LOG_SHARE_PATH>" $OAA_PRIMARY_LOG_SHARE $WORKDIR/dr_dr_pv.yaml
+      fi
+      if [ "$PRODUCT" = "OIRI" ]
+      then
+        update_variable "<DING_SHARE_PATH>" ${OIRI_DING_STANDBY_SHARE} $WORKDIR/dr_primary_pv.yaml
+        update_variable "<WORK_SHARE_PATH>" ${OIRI_WORK_STANDBY_SHARE} $WORKDIR/dr_primary_pv.yaml
+        update_variable "<DING_SHARE_PATH>" ${OIRI_DING_PRIMARY_SHARE} $WORKDIR/dr_dr_pv.yaml
+        update_variable "<WORK_SHARE_PATH>" ${OIRI_WORK_PRIMARY_SHARE} $WORKDIR/dr_dr_pv.yaml
+      fi
+   fi
+   update_variable "<ROLE>" primary $WORKDIR/dr_primary_pv.yaml
+   update_variable "<ROLE>" standby $WORKDIR/dr_dr_pv.yaml
+
+   print_status $?
+
+   printf "\t\t\tCreating DR Primary PV - "
+   kubectl create -f $WORKDIR/dr_primary_pv.yaml > $LOGDIR/create_pv.log 2>&1
+   print_status $? $LOGDIR/create_pv.log
+   printf "\t\t\tCreating DR Standby PV - "
+   kubectl create -f $WORKDIR/dr_dr_pv.yaml >> $LOGDIR/create_pv.log 2>&1
+   print_status $? $LOGDIR/create_pv.log
+
+   ET=$(date +%s)
+   print_time STEP "Create DR Persistent Volumes" $ST $ET >> $LOGDIR/timings.log
+}
+
+# Create persistent volumes used by DR Cron job.
+#
+create_dr_pv()
+{
+   ST=$(date +%s)
+   print_msg "Creating DR Persistent Volume"
+
+   kubectl create -f $WORKDIR/dr_dr_pv.yaml > $LOGDIR/create_dr_pv.log 2>&1
+   print_status $? $LOGDIR/create_dr_pv.log
+
+   ET=$(date +%s)
+   print_time STEP "Create DR Persistent Volume " $ST $ET >> $LOGDIR/timings.log
+}
+
+# Create persistent volume claims used by DR Cron job.
+#
+create_dr_pvcs()
+{
+   ST=$(date +%s)
+   print_msg "Creating DR Persistent Volume Claim Files"
+   cp $TEMPLATE_DIR/dr_pvc.yaml $WORKDIR/dr_primary_pvc.yaml
+   cp $TEMPLATE_DIR/dr_pvc.yaml $WORKDIR/dr_dr_pvc.yaml
+
+   update_variable "<DRNS>" $DRNS $WORKDIR/dr_primary_pvc.yaml
+   update_variable "<ROLE>" primary $WORKDIR/dr_primary_pvc.yaml
+
+   update_variable "<DRNS>" $DRNS $WORKDIR/dr_dr_pvc.yaml
+   update_variable "<ROLE>" standby $WORKDIR/dr_dr_pvc.yaml
+
+   print_status $?
+ 
+   printf "\t\t\tCreating Primary Persistent Volume Claim - "
+   kubectl create -f $WORKDIR/dr_primary_pvc.yaml > $LOGDIR/create_pvc.log 2>&1
+   print_status $? $LOGDIR/create_pvc.log
+
+   printf "\t\t\tCreating Standby Persistent Volume Claim - "
+   kubectl create -f $WORKDIR/dr_dr_pvc.yaml >> $LOGDIR/create_pvc.log 2>&1
+   print_status $? $LOGDIR/create_pvc.log
+
+   ET=$(date +%s)
+   print_time STEP "Create DR Persistent Volume Claim Files" $ST $ET >> $LOGDIR/timings.log
+}
+
+create_dr_pvc()
+{
+   ST=$(date +%s)
+   print_msg "Creating DR Persistent Volume Claim"
+   kubectl create -f $WORKDIR/dr_dr_pvc.yaml > $LOGDIR/create_dr_pvc.log 2>&1
+   print_status $? $LOGDIR/create_dr_pvc.log
+
+   ET=$(date +%s)
+   print_time STEP "Create DR Persistent Volume Claim " $ST $ET >> $LOGDIR/timings.log
+}
+
+# Create a DR Config Map to control how DR Cronjobs work.
+#
+create_dr_configmap()
+{
+   ST=$(date +%s)
+   print_msg "Creating DR Config Map"
+   cp $TEMPLATE_DIR/../general/dr_cm.yaml $WORKDIR/dr_cm.yaml
+   update_variable "<DRNS>" $DRNS $WORKDIR/dr_cm.yaml
+   update_variable "<ENV_TYPE>" $ENV_TYPE $WORKDIR/dr_cm.yaml
+   update_variable "<DR_TYPE>" $DR_TYPE $WORKDIR/dr_cm.yaml
+   update_variable "<OIG_DOMAIN_NAME>" $OIG_DOMAIN_NAME $WORKDIR/dr_cm.yaml
+   update_variable "<OAM_DOMAIN_NAME>" $OAM_DOMAIN_NAME $WORKDIR/dr_cm.yaml
+
+   if [ "$DR_TYPE" = "PRIMARY" ]
+   then
+        update_variable "<OAM_LOCAL_SCAN>" $OAM_PRIMARY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OAM_REMOTE_SCAN>" $OAM_STANDBY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OIG_LOCAL_SCAN>" $OIG_PRIMARY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OIG_REMOTE_SCAN>" $OIG_STANDBY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_LOCAL_SCAN>" $OIRI_PRIMARY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_REMOTE_SCAN>" $OIRI_STANDBY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OAA_LOCAL_SCAN>" $OAA_PRIMARY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OAA_REMOTE_SCAN>" $OAA_STANDBY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OAM_LOCAL_SERVICE>" $OAM_PRIMARY_DB_SERVICE $WORKDIR/dr_cm.yaml
+        update_variable "<OAM_REMOTE_SERVICE>" $OAM_STANDBY_DB_SERVICE $WORKDIR/dr_cm.yaml
+        update_variable "<OIG_LOCAL_SERVICE>" $OIG_PRIMARY_DB_SERVICE $WORKDIR/dr_cm.yaml
+        update_variable "<OIG_REMOTE_SERVICE>" $OIG_STANDBY_DB_SERVICE $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_LOCAL_SERVICE>" $OIRI_PRIMARY_DB_SERVICE $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_REMOTE_SERVICE>" $OIRI_STANDBY_DB_SERVICE $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_LOCAL_K8CONFIG>" $OIRI_PRIMARY_K8CONFIG $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_REMOTE_K8CONFIG>" $OIRI_STANDBY_K8CONFIG $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_LOCAL_K8CA>" $OIRI_PRIMARY_K8CA $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_REMOTE_K8CA>" $OIRI_STANDBY_K8CA $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_REMOTE_K8>" $OIRI_STANDBY_K8 $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_LOCAL_K8>" $OIRI_PRIMARY_K8 $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_REMOTE_K8>" $OIRI_STANDBY_K8 $WORKDIR/dr_cm.yaml
+        update_variable "<OAA_LOCAL_SERVICE>" $OAA_PRIMARY_DB_SERVICE $WORKDIR/dr_cm.yaml
+        update_variable "<OAA_REMOTE_SERVICE>" $OAA_STANDBY_DB_SERVICE $WORKDIR/dr_cm.yaml
+   else
+        update_variable "<OAM_LOCAL_SCAN>" $OAM_STANDBY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OAM_REMOTE_SCAN>" $OAM_PRIMARY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OIG_LOCAL_SCAN>" $OIG_STANDBY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OIG_REMOTE_SCAN>" $OIG_PRIMARY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OAA_LOCAL_SCAN>" $OAA_STANDBY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OAA_REMOTE_SCAN>" $OAA_PRIMARY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OAM_LOCAL_SERVICE>" $OAM_STANDBY_DB_SERVICE $WORKDIR/dr_cm.yaml
+        update_variable "<OAM_REMOTE_SERVICE>" $OAM_PRIMARY_DB_SERVICE $WORKDIR/dr_cm.yaml
+        update_variable "<OIG_LOCAL_SERVICE>" $OIG_STANDBY_DB_SERVICE $WORKDIR/dr_cm.yaml
+        update_variable "<OIG_REMOTE_SERVICE>" $OIG_PRIMARY_DB_SERVICE $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_LOCAL_SERVICE>" $OIRI_STANDBY_DB_SERVICE $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_REMOTE_SERVICE>" $OIRI_PRIMARY_DB_SERVICE $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_LOCAL_SCAN>" $OIRI_STANDBY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_REMOTE_SCAN>" $OIRI_PRIMARY_DB_SCAN $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_LOCAL_K8CONFIG>" $OIRI_STANDBY_K8CONFIG $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_REMOTE_K8CONFIG>" $OIRI_PRIMARY_K8CONFIG $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_LOCAL_K8CA>" $OIRI_STANDBY_K8CA $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_REMOTE_K8CA>" $OIRI_PRIMARY_K8CA $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_REMOTE_K8>" $OIRI_PRIMARY_K8 $WORKDIR/dr_cm.yaml
+        update_variable "<OIRI_LOCAL_K8>" $OIRI_STANDBY_K8 $WORKDIR/dr_cm.yaml
+        update_variable "<OAA_LOCAL_SERVICE>" $OAA_STANDBY_DB_SERVICE $WORKDIR/dr_cm.yaml
+        update_variable "<OAA_REMOTE_SERVICE>" $OAA_PRIMARY_DB_SERVICE $WORKDIR/dr_cm.yaml
+   fi
+
+   kubectl apply -f $WORKDIR/dr_cm.yaml > $LOGDIR/dr_cm.log 2>&1
+   if [ $? = 0 ]
+   then
+     echo "Success"
+   else
+       grep -q Exists $LOGDIR/dr_cm.log
+       if [ $? = 0 ]
+       then
+          echo "Already Exists"
+       else
+          echo "Failed - See $LOGDIR/dr_cm.log."
+          exit 1
+       fi
+   fi
+
+   ET=$(date +%s)
+   print_time STEP "Create DR Config Map" $ST $ET >> $LOGDIR/timings.log
+}
+
+# Copy the script that the DR CronJob uses to the product PV
+#
+copy_dr_script()
+{ 
+   ST=$(date +%s)
+   
+   PV_MOUNT_VAR=${PRODUCT}_LOCAL_SHARE
+
+   print_msg "Copy $PRODUCT DR Script to PV"
+   printf "\n\t\t\tChecking ${!PV_MOUNT_VAR} is mounted locally - "
+
+   LOCAL_SHARE=${!PV_MOUNT_VAR}
+   df $LOCAL_SHARE > /dev/null 2>&1
+   print_status $?
+
+   printf "\t\t\tCreating DR Script Directory - "
+   if [ -e $LOCAL_SHARE/dr_scripts ]
+   then
+     echo " Already Exists"
+   else
+     mkdir $LOCAL_SHARE/dr_scripts > $LOGDIR/copy_drscripts.log 2>&1
+     print_status $? $LOGDIR/copy_drscripts.log
+   fi
+
+   printf "\t\t\tCopy DR Script to Container - "
+   cp $TEMPLATE_DIR/${product_type}_dr.sh $LOCAL_SHARE/dr_scripts
+   print_status $? $LOGDIR/copy_drscripts.log
+
+   printf "\t\t\tSet execute permission - "
+   chmod 700 $LOCAL_SHARE/dr_scripts/${product_type}_dr.sh
+   print_status $? $LOGDIR/copy_drscripts.log
+
+   ET=$(date +%s)
+   print_time STEP "Copy DR Script" $ST $ET >> $LOGDIR/timings.log
+}
+
+# Create a cronjob to Rsync PVs to the standby site, and update DB connections 
+#
+create_dr_cronjob()
+{
+   ST=$(date +%s)
+   print_msg "Creating DR Cron Job"
+   kubectl create -f $WORKDIR/dr_cron.yaml  > $LOGDIR/create_dr_cron.log 2>&1
+
+   print_status $? $LOGDIR/create_dr_cron.log
+
+   ET=$(date +%s)
+   print_time STEP "Create DR Cron Job" $ST $ET >> $LOGDIR/timings.log
+}
+
+# Create a one-of job to initialise the PVs, based on the cronjob
+#
+initialise_dr()
+{
+   ST=$(date +%s)
+   print_msg "Creating Job to Initialise $PRODUCT DR "
+   kubectl create job --from=cronjob.batch/${product_type}rsyncdr ${product_type}-initialise-$ST -n $DRNS > $LOGDIR/initialise_dr-$ST.log 2>&1
+   print_status $? $LOGDIR/initialise_dr-$ST.log
+   printf "\t\t\tJob - ${product_type}-initialise-$ST Created in namespace $DRNS - "
+   sleep 10
+   PODNAME=`kubectl get pod -n $DRNS | grep ${product_type}-initialise-$ST | tail -1 | awk '{ print $1 }'`
+   if [ "$PODNAME" = "" ]
+   then
+     echo "Failed to create job."
+     exit 1
+   else
+     echo "Success"
+   fi
+   printf "\n\n\t\t\tMonitor job using the command:  kubectl logs -n $DRNS $PODNAME\n\n"
+
+   ET=$(date +%s)
+}
+
+# Switch a sites Role from Primary to Standby and visa versa.
+#
+switch_dr_mode()
+{
+   current_mode=$(kubectl get cm -n $DRNS dr-cm -o yaml | grep DR_TYPE | cut -f2 -d: | tr -d ' ')
+
+   if [ "$current_mode" = "PRIMARY" ]
+   then
+      new_mode="STANDBY"
+   else
+      new_mode="PRIMARY"
+   fi
+   
+   echo -n "You are requesting to switch this sites DR mode from $current_mode to $new_mode.  Is this correct (y/n) ?"
+   read ANS
+
+   if [ "$ANS" = "y" ]
+   then
+      CMD="kubectl patch configmap -n $DRNS dr-cm -p '{\"data\":{\"DR_TYPE\":\"$new_mode\"}}'"
+      eval $CMD
+      if [ $? -eq 0 ]
+      then
+         echo "Mode changed successfully."
+      else
+         echo "Unable to change the mode."
+      fi
+   fi
+}
+
+# Stop all deployments running in a namespace.
+#
+stop_deployment()
+{
+   DEPLOYNS=$1
+   ST=$(date +%s)
+   print_msg "Stop Deployments in namespace $DEPLOYNS"
+   deployments=$(kubectl get deployment -n $DEPLOYNS | grep -v NAME | awk '{print $1}')
+   for deployment in $deployments
+   do
+      echo Stopping Deployment : $deployment
+       kubectl patch deployment -p '{"spec" : {"replicas" : 0 }}' -n $DEPLOYNS $deployment
+   done
+   ET=$(date +%s)
+   print_time STEP "Stop Deployments in $DEPLOYNS" $ST $ET >> $LOGDIR/timings.log
+}
+
+# Start all deployments in a namespace
+#
+start_deployment()
+{
+   DEPLOYNS=$1
+   REPLICAS=$2
+   ST=$(date +%s)
+   print_msg "Start Deployments in namespace $DEPLOYNS"
+   deployments=$(kubectl get deployment -n $DEPLOYNS | grep -v NAME | awk '{print $1}')
+   for deployment in $deployments
+   do
+      echo Starting Deployment : $deployment
+      kubectl patch deployment -p "{\"spec\" : {\"replicas\" : $REPLICAS }}" -n $DEPLOYNS $deployment
+   done
+   ET=$(date +%s)
+   print_time STEP "Start Deployments in $DEPLOYNS" $ST $ET >> $LOGDIR/timings.log
+}
+
+# Backup the Priamry OHS config.
+#
+get_ohs_config()
+{
+   OHS_SERVERS=$1
+
+   ST=$(date +%s)
+   print_msg "Copying OHS configuration Files to $LOCAL_WORKDIR/OHS"
+
+   $SCP  $OHS_HOST1:$OHS_DOMAIN/config/fmwconfig/components/OHS/$OHS1_NAME/moduleconf/*vh.conf $WORKDIR > $LOGDIR/copy_ohs.log 2>&1
+   print_status $? $LOGDIR/copy_ohs.log
+
+   ET=$(date +%s)
+   print_time STEP "Copy OHS Configuration " $ST $ET >> $LOGDIR/timings.log
+}
+
+# Create a tar file of the OHS config
+#
+tar_ohs_config()
+{
+
+   ST=$(date +%s)
+   print_msg "Tarring OHS configuration Files "
+
+   cd $WORKDIR
+   tar cvfz ohs_config.tar.gz *vh.conf > $LOGDIR/ohs_tar.log 2>&1
+   print_status $? $LOGDIR/ohs_tar.log
+
+   ET=$(date +%s)
+   print_time STEP "Tarring OHS Configuration " $ST $ET >> $LOGDIR/timings.log
+}
+
+# Untar the OHS config on the DR site.
+#
+untar_ohs_config()
+{
+
+   ST=$(date +%s)
+   print_msg "Untarring OHS configuration Files "
+
+   cd $WORKDIR
+   tar xvfz $WORKDIR/ohs_config.tar.gz *vh.conf > $LOGDIR/ohs_tar.log 2>&1
+   print_status $? $LOGDIR/ohs_tar.log
+
+   ET=$(date +%s)
+   print_time STEP "Untarring OHS Configuration " $ST $ET >> $LOGDIR/timings.log
+}
+
+# Copy files to the DR Host
+#
+copy_files_to_dr()
+{
+
+   FILE=$1
+   ST=$(date +%s)
+   print_msg "Copying $FILE to DR System"
+
+   DIR=$(dirname $FILE)
+   printf "\n\t\t\tCreate Directory $DIR on $DR_HOST - "
+   $SSH -o ConnectTimeout=4 $DR_USER@$DR_HOST "mkdir -p $DIR" > $LOGDIR/copy_file_to_dr.log 2>&1
+   print_status $? $LOGDIR/copy_file_to_dr.log
+   printf "\t\t\tCopying file $FILE to $DR_HOST - "
+   $SCP $FILE $DR_USER@$DR_HOST:$FILE >> $LOGDIR/copy_file_to_dr.log 2>&1
+   print_status $? $LOGDIR/copy_file_to_dr.log
+   ET=$(date +%s)
+   print_time STEP "Copying OHS Configuration to $DR_HOST" $ST $ET >> $LOGDIR/timings.log
+}
+
+# Check health-check is not being blocked
+#
+check_healthcheck_ok()
+{
+   ST=$(date +%s)
+   print_msg "Checking Health-check is not blocked"
+
+   printf "\n\t\t\t$OHS_HOST1 - "
+   blocked_ip=$( $SSH ${OHS_USER}@$OHS_HOST1 grep health-check.html  $OHS_DOMAIN/servers/ohs?/logs/access_log | grep 403 | awk '{ print $1 }' | tail -1 )
+   if [ "$blocked_ip" = "" ]
+   then
+     echo "Success"
+   else
+     printf "Blocked by IP Address: $blocked_ip - Fixing - "
+     $SSH ${OHS_USER}@$OHS_HOST1 -C sed -i \"/    require host/a "\\    require ip $blocked_ip"\" $OHS_DOMAIN/config/fmwconfig/components/OHS/ohs?/webgate.conf
+     print_status $?
+     printf "\t\t\tRestarting OHS $OHS_HOST1 - "
+     $SSH ${OHS_USER}@$OHS_HOST1 "$OHS_DOMAIN/bin/restartComponent.sh $OHS1_NAME" > $LOGDIR/restart_$OHS_HOST1.log 2>&1
+     print_status $? $LOGDIR/restart_$OHS_HOST1.log
+   fi
+
+   if [ ! "$OHS_HOST2" = "" ]
+   then
+     printf "\n\t\t\t$OHS_HOST2 - "
+     blocked_ip=$( $SSH ${OHS_USER}@$OHS_HOST2 grep health-check.html  $OHS_DOMAIN/servers/ohs?/logs/access_log | grep 403 | awk '{ print $1 }' | tail -1 )
+     if [ "$blocked_ip" = "" ]
+     then
+       echo "Success"
+     else
+       printf "Blocked by IP Address: $blocked_ip - Fixing - "
+       $SSH ${OHS_USER}@$OHS_HOST2 -C sed -i \"/    require host/a "\\    require ip $blocked_ip"\" $OHS_DOMAIN/config/fmwconfig/components/OHS/ohs?/webgate.conf
+       print_status $?
+       printf "\t\t\tRestarting OHS $OHS_HOST2 - "
+       $SSH ${OHS_USER}@$OHS_HOST2 "$OHS_DOMAIN/bin/restartComponent.sh $OHS2_NAME" > $LOGDIR/restart_$OHS_HOST2.log 2>&1
+       print_status $? $LOGDIR/restart_$OHS_HOST2.log
+     fi
+   fi
 }

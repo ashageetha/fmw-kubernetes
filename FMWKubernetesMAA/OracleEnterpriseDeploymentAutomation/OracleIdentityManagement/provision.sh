@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # This is an example of an Umbrella script that will perform a full end to end Identity Managment Provisioning
@@ -12,6 +12,7 @@
 #               ./provision_oud.sh
 #               ./provision_oudsm.sh
 #               ./provision_operator.sh
+#               ./provision_ohs.sh
 #               ./provision_oam.sh
 #               ./provision_oig.sh
 #               ./provision_oaa.sh
@@ -31,7 +32,7 @@ do
     p)
       PWDFILE=$SCRIPTDIR/responsefile/$OPTARG
      ;;
-    ignorePrereqs)
+    i)
       IGNOREREQS=true
      ;;
     ?)

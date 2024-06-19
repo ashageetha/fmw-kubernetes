@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (c) 2021, 2023, Oracle and/or its affiliates.
+# Copyright (c) 2021, 2024, Oracle and/or its affiliates.
 # Licensed under the Universal Permissive License v 1.0 as shown at https://oss.oracle.com/licenses/upl.
 #
 # This is an example of a script which will delete an OAM deployment
@@ -50,7 +50,11 @@ fi
 . $SCRIPTDIR/common/functions.sh
 
 WORKDIR=$LOCAL_WORKDIR/OAM
-LOGDIR=$WORKDIR/logs
+LOGDIR=$LOCAL_WORKDIR/delete_logs/OAM
+if [ ! -e $LOGDIR ]
+then
+  mkdir -p $LOGDIR
+fi
 
 mkdir $LOCAL_WORKDIR/deleteLogs > /dev/null 2>&1
 
@@ -103,6 +107,11 @@ check_stopped $OAMNS adminserver
 # Drop OAM Schemas
 #
 ST=`date +%s`
+
+echo "Recreating Helper Pod."
+remove_helper_pod $OAMNS
+create_helper_pod $OAMNS $OAM_IMAGE:$OAM_VER
+
 printf "Dropping Schemas - "
 drop_schemas  $OAMNS $OAM_DB_SCAN $OAM_DB_LISTENER $OAM_DB_SERVICE $OAM_RCU_PREFIX OAM $OAM_DB_SYS_PWD $OAM_SCHEMA_PWD >> $LOG 2>&1
 ET=`date +%s`
@@ -129,15 +138,22 @@ else
      fi
 fi
 
+echo "Deleting Namespace $OAMNS"
+kubectl delete namespace $OAMNS  >> $LOG 2>&1
 
 # Delete All contents in the Persistent Volumes
 # Requires that the PV is mounted locally
+
+# Remove Persistent Volume & Claim from Kubernetes
+#
+echo "Removing Persistent Volumes"
+kubectl delete pv $OAM_DOMAIN_NAME-domain-pv  >> $LOG 2>&1
 
 echo "Deleting Volumes"
 
 if [ ! "$OAM_LOCAL_SHARE" = "" ]
 then
-  rm -rf $OAM_LOCAL_SHARE/>> $LOG 2>&1
+  rm -rf  $OAM_LOCAL_SHARE/applications $OAM_LOCAL_SHARE/domains $OAM_LOCAL_SHARE/dr_scripts $OAM_LOCAL_SHARE/keystores $OAM_LOCAL_SHARE/logs $OAM_LOCAL_SHARE/workdir >> $LOG 2>&1
 fi
 
 
@@ -149,15 +165,6 @@ else
   echo "Unable to delete volumes."
 fi
 
-# Remove Persistent Volume & Claim from Kubernetes
-#
-echo "Removing Persistent Volumes"
-kubectl delete pvc -n $OAMNS $OAM_DOMAIN_NAME-domain-pvc  >> $LOG 2>&1
-kubectl delete pv $OAM_DOMAIN_NAME-domain-pv  >> $LOG 2>&1
-
-
-echo "Deleting Namespace $OAMNS"
-kubectl delete namespace $OAMNS  >> $LOG 2>&1
 
 FINISH_TIME=`date +%s`
 print_time TOTAL "Delete OAM " $START_TIME $FINISH_TIME 

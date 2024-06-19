@@ -97,7 +97,7 @@ install_oci_tools() {
    STEPNO=$((STEPNO+1))
    if [[ $STEPNO -gt $PROGRESS ]]; then
      print_msg begin "Updating the OCI config File on the Bastion Node..."
-     cmd="ssh -q -o \"StrictHostKeyChecking no\" -i $SSH_ID_KEYFILE opc@$BASTIONIP sed -i 's/key_file=.*/key_file=\\\/home\\\/opc\\\/\.oci\\\/oci_api_key.pem/ /home/opc/.oci/config'"
+     cmd="ssh -q -o \"StrictHostKeyChecking no\" -i $SSH_ID_KEYFILE opc@$BASTIONIP sed -i -r 's/key_file=.*\.oci\\\/\(.*\)/key_file=\\\/home\\\/opc\\\/\.oci\\\/\\\1/ /home/opc/.oci/config'"
      execute "$cmd"
      print_msg end
    fi
@@ -209,7 +209,6 @@ mount_bastion_nfs() {
      echo  "sudo chmod 777 $FS_OIRIPV_LOCAL_MOUNTPOINT" >> $OUTDIR/bastion_mounts.sh
      echo  "sudo chmod 777 $FS_OUDSMPV_LOCAL_MOUNTPOINT" >> $OUTDIR/bastion_mounts.sh
      echo  "sudo chmod 777 $FS_OUDCONFIGPV_LOCAL_MOUNTPOINT" >> $OUTDIR/bastion_mounts.sh
-     echo  "sudo chmod 777 $FS_OUDVAULTPV_LOCAL_MOUNTPOINT" >> $OUTDIR/bastion_mounts.sh
      echo  "sudo chmod 777 $FS_OUDPV_LOCAL_MOUNTPOINT" >> $OUTDIR/bastion_mounts.sh
      echo  "sudo chmod 777 $FS_OIGPV_LOCAL_MOUNTPOINT" >> $OUTDIR/bastion_mounts.sh
      echo  "sudo chmod 777 $FS_OAMPV_LOCAL_MOUNTPOINT" >> $OUTDIR/bastion_mounts.sh
@@ -592,7 +591,7 @@ createService() {
   if [[ $STEPNO -gt $PROGRESS ]]; then
     if [[ ! "$DBSERVICES" =~ "$2" ]]; then
       print_msg begin "Creating the srvctl Service for the '$1' Pluggable Database..."    
-      cmd="ssh -q -i $SSH_ID_KEYFILE -t -o 'StrictHostKeyChecking no' -o ProxyCommand='ssh -q -i $SSH_ID_KEYFILE opc@$BASTIONIP -W %h:%p' oracle@$DBIP 'srvctl add service -db ${DB_NAME}_${DB_SUFFIX} -service $2 -pdb $1 -preferred $DBINSTANCES'"
+      cmd="ssh -q -i $SSH_ID_KEYFILE -t -o 'StrictHostKeyChecking no' -o ProxyCommand='ssh -q -i $SSH_ID_KEYFILE opc@$BASTIONIP -W %h:%p' oracle@$DBIP 'srvctl add service -db ${DB_NAME}_${DB_SUFFIX} -service $2 -pdb $1 -role PRIMARY,SNAPSHOT_STANDBY -preferred $DBINSTANCES'"
       execute "$cmd"
       print_msg end
     else
