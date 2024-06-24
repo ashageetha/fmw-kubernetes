@@ -8,8 +8,7 @@ export DOMAIN_HOME=${DOMAIN_HOME_DIR}
 if [ -z "${JAVA_HOME}" ]; then
   JAVA_HOME=/usr/java/latest
 fi  
-export WLST_PROPERTIES="-Dwlst.offline.log=debug_wlst.log -Dwlst.offline.log.priority=ALL"
-
+export WLST_PROPERTIES="-Dwlst.offline.log=debug_wlst.log -Dwlst.offline.log.priority=ALL -Doracle.pki.debug=true -Djava.security.debug=jpspolicy"
 wlst.sh -skipWLSModuleScanning \
         ${CREATE_DOMAIN_SCRIPT_DIR}/createSOADomain.py \
         -oh /u01/oracle \
