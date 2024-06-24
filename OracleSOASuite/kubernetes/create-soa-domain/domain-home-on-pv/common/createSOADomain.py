@@ -677,6 +677,8 @@ class SOAProvisioner:
         set('Target', soaClusterName)
 
         print 'Preparing to update domain...'
+        cmd = "ls -lrtRa "+ self.oracleHome
+        os.system(cmd)        
         updateDomain()
         print 'Domain updated successfully'
         closeDomain()
@@ -755,6 +757,8 @@ class SOAProvisioner:
             set('Target', osbClusterName)
 
         print 'Preparing to update domain...'
+        cmd = "ls -lrtRa "+ self.oracleHome
+        os.system(cmd)
         updateDomain()
         print 'Domain updated successfully'
         closeDomain()
